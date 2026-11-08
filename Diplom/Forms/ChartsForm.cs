@@ -29,7 +29,7 @@ namespace Diplom.Forms
 
         private void LoadRealData()
         {
-            _realLambda = _db.CalculateRealLambda(DateTime.Now.AddDays(-30), DateTime.Now);
+            _realLambda = _db.CalculateRealLambda();
             _realMu = _db.CalculateRealMu();
             _realC = _db.GetRealRoomCount();
 
@@ -263,7 +263,7 @@ namespace Diplom.Forms
                 Y = axisMax,
                 Text = "Предел (ρ = 1)\nДальше перегрузка",
                 Shape = MarkerType.None,
-                TextPosition = new DataPoint(limitLambda * 0.8, axisMax * 0.8), // Автоматический сдвиг влево и вниз
+                TextPosition = new DataPoint(limitLambda * 0.8, axisMax * 0.8),
                 TextColor = OxyColors.DarkRed
             };
             model.Annotations.Add(limitAnnotation);

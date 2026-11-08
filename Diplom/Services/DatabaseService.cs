@@ -1,8 +1,9 @@
-﻿using System;
+﻿using Diplom.Models;
+using Npgsql;
+using System;
 using System.Collections.Generic;
 using System.Linq;
-using Npgsql;
-using Diplom.Models;
+using System.Windows.Forms;
 
 namespace Diplom.Services
 {
@@ -520,33 +521,42 @@ CREATE TRIGGER update_bookings_updated_at
             }
         }
 
-        public double CalculateRealLambda(DateTime startDate, DateTime endDate)
+        public double CalculateRealLambda()
         {
             try
             {
+                // Считаем ВСЕ брони за всё время и делим на реальный период
                 string sql = @"
-                    SELECT COUNT(*) * 1.0 / (EXTRACT(DAY FROM ($2 - $1)) + 1)
-                    FROM Bookings 
-                    WHERE created_at BETWEEN @start AND @end
-                    AND status != 'отменено'";
+                    WITH DateRange AS (
+                        SELECT 
+                            COUNT(*) as TotalBookings,
+                            MIN(check_in_date) as MinDate,
+                            MAX(check_out_date) as MaxDate
+                        FROM Bookings
+                        WHERE status IN ('завершено', 'подтверждено')
+                    )
+                    SELECT 
+                        CASE 
+                            WHEN (MaxDate - MinDate) > 0 THEN TotalBookings::numeric / (MaxDate - MinDate)
+                            ELSE TotalBookings 
+                        END
+                    FROM DateRange;";
 
                 using (var conn = new NpgsqlConnection(DbConnectionString))
                 {
                     conn.Open();
                     using (var cmd = new NpgsqlCommand(sql, conn))
                     {
-                        cmd.Parameters.AddWithValue("@start", startDate);
-                        cmd.Parameters.AddWithValue("@end", endDate);
                         var result = cmd.ExecuteScalar();
                         if (result == DBNull.Value) return 0;
-                        double val = Convert.ToDouble(result);
-                        return val > 0 ? val : DataStore.LastLambda;
+                        return Convert.ToDouble(result);
                     }
                 }
             }
-            catch
+            catch (Exception ex)
             {
-                return DataStore.LastLambda;
+                MessageBox.Show($"Ошибка CalculateRealLambda: {ex.Message}", "Ошибка БД");
+                return 0;
             }
         }
 
@@ -555,7 +565,7 @@ CREATE TRIGGER update_bookings_updated_at
             try
             {
                 string sql = @"
-                    SELECT AVG(EXTRACT(DAY FROM (check_out_date - check_in_date)))
+                    SELECT AVG(check_out_date - check_in_date)
                     FROM Bookings 
                     WHERE status = 'завершено' OR status = 'подтверждено'";
 
@@ -567,15 +577,15 @@ CREATE TRIGGER update_bookings_updated_at
                         var result = cmd.ExecuteScalar();
                         if (result == DBNull.Value) return 0;
                         double avgDays = Convert.ToDouble(result);
-                        if (avgDays <= 0) return DataStore.LastMu;
-                        double mu = 1.0 / avgDays;
-                        return mu > 0 ? mu : DataStore.LastMu;
+                        if (avgDays <= 0) return 0;
+                        return 1.0 / avgDays;
                     }
                 }
             }
-            catch
+            catch (Exception ex)
             {
-                return DataStore.LastMu;
+                MessageBox.Show($"Ошибка CalculateRealMu: {ex.Message}", "Ошибка БД");
+                return 0;
             }
         }
 
@@ -590,14 +600,14 @@ CREATE TRIGGER update_bookings_updated_at
                     conn.Open();
                     using (var cmd = new NpgsqlCommand(sql, conn))
                     {
-                        int count = Convert.ToInt32(cmd.ExecuteScalar());
-                        return 0;
+                        return Convert.ToInt32(cmd.ExecuteScalar());
                     }
                 }
             }
-            catch
+            catch (Exception ex)
             {
-                return DataStore.LastC;
+                MessageBox.Show($"Ошибка GetRealRoomCount: {ex.Message}", "Ошибка БД");
+                return 0;
             }
         }
 
@@ -643,7 +653,7 @@ CREATE TRIGGER update_bookings_updated_at
                     cmd.Parameters.AddWithValue("@date", date);
                     var result = cmd.ExecuteScalar();
                     double sum = result == DBNull.Value ? 0 : Convert.ToDouble(result);
-                    return 1.0 + sum; // базовый коэффициент 1 + сумма отклонений
+                    return 1.0 + sum;
                 }
             }
         }
