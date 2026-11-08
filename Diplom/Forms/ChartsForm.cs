@@ -30,13 +30,18 @@ namespace Diplom.Forms
         private void LoadRealData()
         {
             _realLambda = _db.CalculateRealLambda(DateTime.Now.AddDays(-30), DateTime.Now);
-            if (_realLambda <= 0) _realLambda = DataStore.LastLambda > 0 ? DataStore.LastLambda : 5.87;
-
             _realMu = _db.CalculateRealMu();
-            if (_realMu <= 0) _realMu = DataStore.LastMu > 0 ? DataStore.LastMu : 0.5;
-
             _realC = _db.GetRealRoomCount();
-            if (_realC <= 0) _realC = DataStore.LastC > 0 ? DataStore.LastC : 10;
+
+            if (_realLambda <= 0 || _realMu <= 0 || _realC <= 0)
+            {
+                MessageBox.Show("Недостаточно данных в БД для построения графиков.\nДобавьте номера и завершенные бронирования.",
+                    "Нет данных", MessageBoxButtons.OK, MessageBoxIcon.Warning);
+
+                _realLambda = 1;
+                _realMu = 0.5;
+                _realC = 1;
+            }
 
             this.Text = $"Аналитика — Графики (λ={_realLambda:F2}, μ={_realMu:F2}, c={_realC})";
         }
@@ -209,11 +214,10 @@ namespace Diplom.Forms
                 Color = OxyColor.FromRgb(85, 107, 47)
             };
 
-            // Вычисляем точку, где rho = 1 (предел стабильности)
             double limitLambda = _realC * _realMu;
-            double maxLambda = limitLambda * 0.99; // Берем 99%, чтобы не делить на ноль
+            double maxLambda = limitLambda * 0.99;
 
-            double maxCalculatedW = 0; // Переменная для хранения максимального рассчитанного времени
+            double maxCalculatedW = 0;
 
             for (double lambda = 0.1; lambda <= maxLambda; lambda += 0.1)
             {
@@ -224,18 +228,15 @@ namespace Diplom.Forms
 
                 double wHours = result.W * 24;
 
-                // Запоминаем самое большое время, которое получилось
                 if (wHours > maxCalculatedW) maxCalculatedW = wHours;
 
                 series.Points.Add(new DataPoint(lambda, wHours));
             }
             model.Series.Add(series);
 
-            // Динамически настраиваем ось Y (добавляем 20% запаса сверху)
             double axisMax = maxCalculatedW * 1.2;
-            if (axisMax <= 0) axisMax = 100; // Защита от нуля
+            if (axisMax <= 0) axisMax = 100;
 
-            // === ДОБАВЛЯЕМ КРАСНУЮ ТОЧКУ ПРЕДЕЛА (РАССЧИТАННУЮ) ===
             var limitPoint = new ScatterSeries
             {
                 Title = "Предел (ρ = 1)",
@@ -243,11 +244,9 @@ namespace Diplom.Forms
                 MarkerSize = 8,
                 MarkerFill = OxyColors.Crimson
             };
-            // Ставим ромб ровно на рассчитанную высоту (чуть выше графика)
             limitPoint.Points.Add(new ScatterPoint(limitLambda, axisMax));
             model.Series.Add(limitPoint);
 
-            // Вертикальная линия асимптоты
             var asymptote = new LineAnnotation
             {
                 Type = LineAnnotationType.Vertical,
@@ -258,7 +257,6 @@ namespace Diplom.Forms
             };
             model.Annotations.Add(asymptote);
 
-            // Добавляем подпись (позиция текста тоже рассчитывается)
             var limitAnnotation = new PointAnnotation
             {
                 X = limitLambda,
@@ -269,7 +267,6 @@ namespace Diplom.Forms
                 TextColor = OxyColors.DarkRed
             };
             model.Annotations.Add(limitAnnotation);
-            // =========================================
 
             var currentLine = new LineAnnotation
             {
@@ -287,7 +284,6 @@ namespace Diplom.Forms
             xAxis.MajorGridlineStyle = LineStyle.Solid;
             xAxis.MajorGridlineColor = OxyColor.FromRgb(220, 220, 220);
 
-            // Ось Y теперь тоже динамическая
             var yAxis = new LinearAxis { Position = AxisPosition.Left, Title = "Время в системе W (часы)", Minimum = 0, Maximum = axisMax };
             yAxis.MajorGridlineStyle = LineStyle.Solid;
             yAxis.MajorGridlineColor = OxyColor.FromRgb(220, 220, 220);
