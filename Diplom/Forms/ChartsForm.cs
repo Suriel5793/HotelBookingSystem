@@ -203,22 +203,73 @@ namespace Diplom.Forms
             {
                 Title = "W(λ), часы",
                 MarkerType = MarkerType.Circle,
-                MarkerSize = 4,
+                MarkerSize = 3,
                 MarkerFill = OxyColor.FromRgb(85, 107, 47),
                 StrokeThickness = 3,
-                Color = OxyColor.FromRgb(85, 107, 47),
-                InterpolationAlgorithm = InterpolationAlgorithms.CanonicalSpline
+                Color = OxyColor.FromRgb(85, 107, 47)
             };
 
-            double maxLambda = _realC * _realMu * 1.2;
+            // Вычисляем точку, где rho = 1 (предел стабильности)
+            double limitLambda = _realC * _realMu;
+            double maxLambda = limitLambda * 0.99; // Берем 99%, чтобы не делить на ноль
 
-            for (double lambda = 0.5; lambda <= maxLambda; lambda += 0.5)
+            double maxCalculatedW = 0; // Переменная для хранения максимального рассчитанного времени
+
+            for (double lambda = 0.1; lambda <= maxLambda; lambda += 0.1)
             {
                 var input = new QueueModel { Lambda = lambda, Mu = _realMu, C = _realC };
                 var result = _calculator.Calculate(input);
-                series.Points.Add(new DataPoint(lambda, result.W * 24));
+
+                if (!result.IsStable) break;
+
+                double wHours = result.W * 24;
+
+                // Запоминаем самое большое время, которое получилось
+                if (wHours > maxCalculatedW) maxCalculatedW = wHours;
+
+                series.Points.Add(new DataPoint(lambda, wHours));
             }
             model.Series.Add(series);
+
+            // Динамически настраиваем ось Y (добавляем 20% запаса сверху)
+            double axisMax = maxCalculatedW * 1.2;
+            if (axisMax <= 0) axisMax = 100; // Защита от нуля
+
+            // === ДОБАВЛЯЕМ КРАСНУЮ ТОЧКУ ПРЕДЕЛА (РАССЧИТАННУЮ) ===
+            var limitPoint = new ScatterSeries
+            {
+                Title = "Предел (ρ = 1)",
+                MarkerType = MarkerType.Diamond,
+                MarkerSize = 8,
+                MarkerFill = OxyColors.Crimson
+            };
+            // Ставим ромб ровно на рассчитанную высоту (чуть выше графика)
+            limitPoint.Points.Add(new ScatterPoint(limitLambda, axisMax));
+            model.Series.Add(limitPoint);
+
+            // Вертикальная линия асимптоты
+            var asymptote = new LineAnnotation
+            {
+                Type = LineAnnotationType.Vertical,
+                X = limitLambda,
+                Color = OxyColors.Crimson,
+                LineStyle = LineStyle.Dot,
+                StrokeThickness = 2
+            };
+            model.Annotations.Add(asymptote);
+
+            // Добавляем подпись (позиция текста тоже рассчитывается)
+            var limitAnnotation = new PointAnnotation
+            {
+                X = limitLambda,
+                Y = axisMax,
+                Text = "Предел (ρ = 1)\nДальше перегрузка",
+                Shape = MarkerType.None,
+                TextPosition = new DataPoint(limitLambda * 0.8, axisMax * 0.8), // Автоматический сдвиг влево и вниз
+                TextColor = OxyColors.DarkRed
+            };
+            model.Annotations.Add(limitAnnotation);
+            // =========================================
 
             var currentLine = new LineAnnotation
             {
@@ -236,7 +287,8 @@ namespace Diplom.Forms
             xAxis.MajorGridlineStyle = LineStyle.Solid;
             xAxis.MajorGridlineColor = OxyColor.FromRgb(220, 220, 220);
 
-            var yAxis = new LinearAxis { Position = AxisPosition.Left, Title = "Время в системе W (часы)", Minimum = 0 };
+            // Ось Y теперь тоже динамическая
+            var yAxis = new LinearAxis { Position = AxisPosition.Left, Title = "Время в системе W (часы)", Minimum = 0, Maximum = axisMax };
             yAxis.MajorGridlineStyle = LineStyle.Solid;
             yAxis.MajorGridlineColor = OxyColor.FromRgb(220, 220, 220);
 
