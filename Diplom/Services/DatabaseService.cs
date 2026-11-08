@@ -705,5 +705,40 @@ CREATE TRIGGER update_bookings_updated_at
             if (DataStore.Bookings.Count > 0)
                 DataStore.NextBookingId = DataStore.Bookings.Max(b => b.BookingId) + 1;
         }
+
+        public User AuthenticateUser(string login, string password)
+        {
+            using (var sha256 = System.Security.Cryptography.SHA256.Create())
+            {
+                var hashedBytes = sha256.ComputeHash(System.Text.Encoding.UTF8.GetBytes(password));
+                string passwordHash = BitConverter.ToString(hashedBytes).Replace("-", "").ToLower();
+
+                string sql = "SELECT user_id, login, role FROM Users WHERE login = @login AND password_hash = @hash";
+
+                using (var conn = new NpgsqlConnection(DbConnectionString))
+                {
+                    conn.Open();
+                    using (var cmd = new NpgsqlCommand(sql, conn))
+                    {
+                        cmd.Parameters.AddWithValue("@login", login);
+                        cmd.Parameters.AddWithValue("@hash", passwordHash);
+
+                        using (var reader = cmd.ExecuteReader())
+                        {
+                            if (reader.Read())
+                            {
+                                return new User
+                                {
+                                    UserId = reader.GetInt32(0),
+                                    Login = reader.GetString(1),
+                                    Role = reader.GetString(2)
+                                };
+                            }
+                        }
+                    }
+                }
+            }
+            return null;
+        }
     }
 }
