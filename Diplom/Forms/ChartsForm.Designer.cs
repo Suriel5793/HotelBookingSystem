@@ -133,7 +133,7 @@
             this.btnClose.Click += new System.EventHandler(this.BtnClose_Click);
 
             // ChartsForm
-            this.BackColor = System.Drawing.Color.FromArgb(153, 145, 130);
+            this.BackColor = System.Drawing.Color.FromArgb(253, 245, 230);
             this.ClientSize = new System.Drawing.Size(1000, 780);
             this.Controls.Add(this.btnClose);
             this.Controls.Add(this.plotWvsLambda);

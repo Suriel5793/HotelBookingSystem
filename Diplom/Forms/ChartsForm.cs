@@ -50,18 +50,27 @@ namespace Diplom.Forms
 
         private void PlotLvsC()
         {
-            var model = new PlotModel();
-            model.Title = "Зависимость среднего числа заявок (L) от количества номеров (c)";
-            model.Background = OxyColor.FromRgb(255, 255, 255);
+            var model = new PlotModel
+            {
+                Title = "Среднее число заявок (L) в зависимости от количества номеров",
+                TitleFontSize = 14,
+                TitleFontWeight = FontWeights.Bold,
+                Background = OxyColor.FromRgb(253, 245, 230),
+                PlotAreaBorderColor = OxyColor.FromRgb(210, 180, 140)
+            };
 
-            var series = new LineSeries();
-            series.Title = "L(c)";
-            series.MarkerType = MarkerType.Circle;
-            series.MarkerSize = 4;
-            series.StrokeThickness = 2;
-            series.Color = OxyColor.FromRgb(0, 0, 255);
+            var series = new LineSeries
+            {
+                Title = "L(c)",
+                MarkerType = MarkerType.Circle,
+                MarkerSize = 4,
+                MarkerFill = OxyColor.FromRgb(139, 69, 19),
+                StrokeThickness = 3,
+                Color = OxyColor.FromRgb(139, 69, 19),
+                Smooth = true
+            };
 
-            for (int c = 1; c <= 30; c++)
+            for (int c = 1; c <= 40; c++)
             {
                 double rho = _realLambda / (c * _realMu);
                 if (rho >= 1) continue;
@@ -70,29 +79,26 @@ namespace Diplom.Forms
                 var result = _calculator.Calculate(input);
                 series.Points.Add(new DataPoint(c, result.L));
             }
-
             model.Series.Add(series);
 
-            // Ось X с сеткой
-            var xAxis = new LinearAxis();
-            xAxis.Position = AxisPosition.Bottom;
-            xAxis.Title = "Количество номеров (c)";
-            xAxis.Minimum = 0;
-            xAxis.Maximum = 30;
-            xAxis.MajorGridlineStyle = LineStyle.Solid;
-            xAxis.MajorGridlineColor = OxyColor.FromRgb(200, 200, 200);
-            xAxis.MinorGridlineStyle = LineStyle.Dot;
-            xAxis.MinorGridlineColor = OxyColor.FromRgb(230, 230, 230);
+            var currentLine = new LineAnnotation
+            {
+                Type = LineAnnotationType.Vertical,
+                X = _realC,
+                Color = OxyColors.IndianRed,
+                LineStyle = LineStyle.Dash,
+                StrokeThickness = 2,
+                Text = $"Текущее c = {_realC}"
+            };
+            model.Annotations.Add(currentLine);
 
-            // Ось Y с сеткой
-            var yAxis = new LinearAxis();
-            yAxis.Position = AxisPosition.Left;
-            yAxis.Title = "Среднее число заявок (L)";
-            yAxis.Minimum = 0;
+            var xAxis = new LinearAxis { Position = AxisPosition.Bottom, Title = "Количество номеров (c)", Minimum = 1, Maximum = 40 };
+            xAxis.MajorGridlineStyle = LineStyle.Solid;
+            xAxis.MajorGridlineColor = OxyColor.FromRgb(220, 220, 220);
+
+            var yAxis = new LinearAxis { Position = AxisPosition.Left, Title = "Среднее число заявок (L)", Minimum = 0 };
             yAxis.MajorGridlineStyle = LineStyle.Solid;
-            yAxis.MajorGridlineColor = OxyColor.FromRgb(200, 200, 200);
-            yAxis.MinorGridlineStyle = LineStyle.Dot;
-            yAxis.MinorGridlineColor = OxyColor.FromRgb(230, 230, 230);
+            yAxis.MajorGridlineColor = OxyColor.FromRgb(220, 220, 220);
 
             model.Axes.Add(xAxis);
             model.Axes.Add(yAxis);
