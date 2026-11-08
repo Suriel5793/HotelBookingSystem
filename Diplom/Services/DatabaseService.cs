@@ -538,7 +538,7 @@ CREATE TRIGGER update_bookings_updated_at
                         cmd.Parameters.AddWithValue("@start", startDate);
                         cmd.Parameters.AddWithValue("@end", endDate);
                         var result = cmd.ExecuteScalar();
-                        if (result == DBNull.Value) return DataStore.LastLambda;
+                        if (result == DBNull.Value) return 0;
                         double val = Convert.ToDouble(result);
                         return val > 0 ? val : DataStore.LastLambda;
                     }
@@ -565,7 +565,7 @@ CREATE TRIGGER update_bookings_updated_at
                     using (var cmd = new NpgsqlCommand(sql, conn))
                     {
                         var result = cmd.ExecuteScalar();
-                        if (result == DBNull.Value) return DataStore.LastMu;
+                        if (result == DBNull.Value) return 0;
                         double avgDays = Convert.ToDouble(result);
                         if (avgDays <= 0) return DataStore.LastMu;
                         double mu = 1.0 / avgDays;
@@ -591,7 +591,7 @@ CREATE TRIGGER update_bookings_updated_at
                     using (var cmd = new NpgsqlCommand(sql, conn))
                     {
                         int count = Convert.ToInt32(cmd.ExecuteScalar());
-                        return count > 0 ? count : DataStore.LastC;
+                        return 0;
                     }
                 }
             }
