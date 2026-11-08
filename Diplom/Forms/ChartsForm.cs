@@ -67,7 +67,7 @@ namespace Diplom.Forms
                 MarkerFill = OxyColor.FromRgb(139, 69, 19),
                 StrokeThickness = 3,
                 Color = OxyColor.FromRgb(139, 69, 19),
-                Smooth = true
+                InterpolationAlgorithm = InterpolationAlgorithms.CanonicalSpline
             };
 
             for (int c = 1; c <= 40; c++)
@@ -125,7 +125,7 @@ namespace Diplom.Forms
                 MarkerFill = OxyColor.FromRgb(178, 34, 34),
                 StrokeThickness = 3,
                 Color = OxyColor.FromRgb(178, 34, 34),
-                Smooth = true
+                InterpolationAlgorithm = InterpolationAlgorithms.CanonicalSpline
             };
 
             for (int c = 1; c <= 40; c++)
@@ -194,7 +194,7 @@ namespace Diplom.Forms
                 MarkerFill = OxyColor.FromRgb(85, 107, 47),
                 StrokeThickness = 3,
                 Color = OxyColor.FromRgb(85, 107, 47),
-                Smooth = true
+                InterpolationAlgorithm = InterpolationAlgorithms.CanonicalSpline
             };
 
             double maxLambda = _realC * _realMu * 0.95;
