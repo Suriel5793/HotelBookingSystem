@@ -115,6 +115,18 @@ CREATE TABLE IF NOT EXISTS External_Factors (
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
 
+CREATE TABLE IF NOT EXISTS Users (
+    user_id SERIAL PRIMARY KEY,
+    login VARCHAR(50) UNIQUE NOT NULL,
+    password_hash VARCHAR(255) NOT NULL,
+    role VARCHAR(20) NOT NULL CHECK (role IN ('admin', 'manager')),
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
+
+INSERT INTO Users (login, password_hash, role) 
+VALUES ('admin', '8c6976e5b5410415bde908bd4dee15dfb167a9c873fc4bb8a81f6f2ab448a918', 'admin')
+ON CONFLICT (login) DO NOTHING;
+
 CREATE INDEX IF NOT EXISTS idx_rooms_category ON Hotel_Rooms(category);
 CREATE INDEX IF NOT EXISTS idx_rooms_status ON Hotel_Rooms(status);
 CREATE INDEX IF NOT EXISTS idx_bookings_room_id ON Bookings(room_id);
