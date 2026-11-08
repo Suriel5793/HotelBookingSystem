@@ -5,6 +5,7 @@ using OxyPlot.Series;
 using OxyPlot.Axes;
 using Diplom.Models;
 using Diplom.Services;
+using OxyPlot.Annotations;
 
 namespace Diplom.Forms
 {
@@ -28,14 +29,21 @@ namespace Diplom.Forms
 
         private void LoadRealData()
         {
-            _realLambda = _db.CalculateRealLambda(DateTime.Now.AddDays(-30), DateTime.Now);
-            if (_realLambda <= 0) _realLambda = 5.87;
-
+            _realLambda = _db.CalculateRealLambda();
             _realMu = _db.CalculateRealMu();
-            if (_realMu <= 0) _realMu = 0.5;
-
             _realC = _db.GetRealRoomCount();
-            if (_realC <= 0) _realC = 10;
+
+            if (_realLambda <= 0 || _realMu <= 0 || _realC <= 0)
+            {
+                MessageBox.Show("Недостаточно данных в БД для построения графиков.\nДобавьте номера и завершенные бронирования.",
+                    "Нет данных", MessageBoxButtons.OK, MessageBoxIcon.Warning);
+
+                _realLambda = 1;
+                _realMu = 0.5;
+                _realC = 1;
+            }
+
+            this.Text = $"Аналитика — Графики (λ={_realLambda:F2}, μ={_realMu:F2}, c={_realC})";
         }
 
         private void LoadCharts()
@@ -47,18 +55,31 @@ namespace Diplom.Forms
 
         private void PlotLvsC()
         {
-            var model = new PlotModel();
-            model.Title = "Зависимость среднего числа заявок (L) от количества номеров (c)";
-            model.Background = OxyColor.FromRgb(255, 255, 255);
+            int minStableC = (int)Math.Ceiling(_realLambda / _realMu) + 1;
+            int startC = Math.Max(1, minStableC - 10);
+            int endC = minStableC + 50;
 
-            var series = new LineSeries();
-            series.Title = "L(c)";
-            series.MarkerType = MarkerType.Circle;
-            series.MarkerSize = 4;
-            series.StrokeThickness = 2;
-            series.Color = OxyColor.FromRgb(0, 0, 255);
+            var model = new PlotModel
+            {
+                Title = "Среднее число заявок (L) в зависимости от количества номеров",
+                TitleFontSize = 14,
+                TitleFontWeight = FontWeights.Bold,
+                Background = OxyColor.FromRgb(253, 245, 230),
+                PlotAreaBorderColor = OxyColor.FromRgb(210, 180, 140)
+            };
 
-            for (int c = 1; c <= 30; c++)
+            var series = new LineSeries
+            {
+                Title = "L(c)",
+                MarkerType = MarkerType.Circle,
+                MarkerSize = 4,
+                MarkerFill = OxyColor.FromRgb(139, 69, 19),
+                StrokeThickness = 3,
+                Color = OxyColor.FromRgb(139, 69, 19),
+                InterpolationAlgorithm = InterpolationAlgorithms.CanonicalSpline
+            };
+
+            for (int c = startC; c <= endC; c++)
             {
                 double rho = _realLambda / (c * _realMu);
                 if (rho >= 1) continue;
@@ -67,29 +88,27 @@ namespace Diplom.Forms
                 var result = _calculator.Calculate(input);
                 series.Points.Add(new DataPoint(c, result.L));
             }
-
             model.Series.Add(series);
 
-            // Ось X с сеткой
-            var xAxis = new LinearAxis();
-            xAxis.Position = AxisPosition.Bottom;
-            xAxis.Title = "Количество номеров (c)";
-            xAxis.Minimum = 0;
-            xAxis.Maximum = 30;
-            xAxis.MajorGridlineStyle = LineStyle.Solid;
-            xAxis.MajorGridlineColor = OxyColor.FromRgb(200, 200, 200);
-            xAxis.MinorGridlineStyle = LineStyle.Dot;
-            xAxis.MinorGridlineColor = OxyColor.FromRgb(230, 230, 230);
+            var currentLine = new LineAnnotation
+            {
+                Type = LineAnnotationType.Vertical,
+                X = _realC,
+                Color = OxyColors.IndianRed,
+                LineStyle = LineStyle.Dash,
+                StrokeThickness = 2,
+                Text = $"Текущее c = {_realC}",
+                TextHorizontalAlignment = OxyPlot.HorizontalAlignment.Right
+            };
+            model.Annotations.Add(currentLine);
 
-            // Ось Y с сеткой
-            var yAxis = new LinearAxis();
-            yAxis.Position = AxisPosition.Left;
-            yAxis.Title = "Среднее число заявок (L)";
-            yAxis.Minimum = 0;
+            var xAxis = new LinearAxis { Position = AxisPosition.Bottom, Title = "Количество номеров (c)", Minimum = startC, Maximum = endC };
+            xAxis.MajorGridlineStyle = LineStyle.Solid;
+            xAxis.MajorGridlineColor = OxyColor.FromRgb(220, 220, 220);
+
+            var yAxis = new LinearAxis { Position = AxisPosition.Left, Title = "Среднее число заявок (L)", Minimum = 0 };
             yAxis.MajorGridlineStyle = LineStyle.Solid;
-            yAxis.MajorGridlineColor = OxyColor.FromRgb(200, 200, 200);
-            yAxis.MinorGridlineStyle = LineStyle.Dot;
-            yAxis.MinorGridlineColor = OxyColor.FromRgb(230, 230, 230);
+            yAxis.MajorGridlineColor = OxyColor.FromRgb(220, 220, 220);
 
             model.Axes.Add(xAxis);
             model.Axes.Add(yAxis);
@@ -99,18 +118,31 @@ namespace Diplom.Forms
 
         private void PlotPRejectVsC()
         {
-            var model = new PlotModel();
-            model.Title = "Зависимость вероятности отказа (Pотк) от количества номеров (c)";
-            model.Background = OxyColor.FromRgb(255, 255, 255);
+            int minStableC = (int)Math.Ceiling(_realLambda / _realMu) + 1;
+            int startC = Math.Max(1, minStableC - 10);
+            int endC = minStableC + 50;
 
-            var series = new LineSeries();
-            series.Title = "Pотк(c)";
-            series.MarkerType = MarkerType.Circle;
-            series.MarkerSize = 4;
-            series.StrokeThickness = 2;
-            series.Color = OxyColor.FromRgb(255, 0, 0);
+            var model = new PlotModel
+            {
+                Title = "Вероятность отказа (Pотк) в зависимости от количества номеров",
+                TitleFontSize = 14,
+                TitleFontWeight = FontWeights.Bold,
+                Background = OxyColor.FromRgb(253, 245, 230),
+                PlotAreaBorderColor = OxyColor.FromRgb(210, 180, 140)
+            };
 
-            for (int c = 1; c <= 30; c++)
+            var series = new LineSeries
+            {
+                Title = "Pотк(c), %",
+                MarkerType = MarkerType.Circle,
+                MarkerSize = 4,
+                MarkerFill = OxyColor.FromRgb(178, 34, 34),
+                StrokeThickness = 3,
+                Color = OxyColor.FromRgb(178, 34, 34),
+                InterpolationAlgorithm = InterpolationAlgorithms.CanonicalSpline
+            };
+
+            for (int c = startC; c <= endC; c++)
             {
                 double rho = _realLambda / (c * _realMu);
                 if (rho >= 1) continue;
@@ -119,28 +151,41 @@ namespace Diplom.Forms
                 var result = _calculator.Calculate(input);
                 series.Points.Add(new DataPoint(c, result.P_reject * 100));
             }
-
             model.Series.Add(series);
 
-            var xAxis = new LinearAxis();
-            xAxis.Position = AxisPosition.Bottom;
-            xAxis.Title = "Количество номеров (c)";
-            xAxis.Minimum = 0;
-            xAxis.Maximum = 30;
-            xAxis.MajorGridlineStyle = LineStyle.Solid;
-            xAxis.MajorGridlineColor = OxyColor.FromRgb(200, 200, 200);
-            xAxis.MinorGridlineStyle = LineStyle.Dot;
-            xAxis.MinorGridlineColor = OxyColor.FromRgb(230, 230, 230);
+            var limitLine = new LineAnnotation
+            {
+                Type = LineAnnotationType.Horizontal,
+                Y = 5,
+                Color = OxyColors.DarkRed,
+                LineStyle = LineStyle.Dot,
+                StrokeThickness = 2,
+                Text = "Допустимый предел 5%",
+                TextHorizontalAlignment = OxyPlot.HorizontalAlignment.Right,
+                TextVerticalAlignment = VerticalAlignment.Top
+            };
 
-            var yAxis = new LinearAxis();
-            yAxis.Position = AxisPosition.Left;
-            yAxis.Title = "Вероятность отказа Pотк (%)";
-            yAxis.Minimum = 0;
-            yAxis.Maximum = 100;
+            model.Annotations.Add(limitLine);
+
+            var currentLine = new LineAnnotation
+            {
+                Type = LineAnnotationType.Vertical,
+                X = _realC,
+                Color = OxyColors.IndianRed,
+                LineStyle = LineStyle.Dash,
+                StrokeThickness = 2,
+                Text = $"Текущее c = {_realC}",
+                TextHorizontalAlignment = OxyPlot.HorizontalAlignment.Right
+            };
+            model.Annotations.Add(currentLine);
+
+            var xAxis = new LinearAxis { Position = AxisPosition.Bottom, Title = "Количество номеров (c)", Minimum = startC, Maximum = endC };
+            xAxis.MajorGridlineStyle = LineStyle.Solid;
+            xAxis.MajorGridlineColor = OxyColor.FromRgb(220, 220, 220);
+
+            var yAxis = new LinearAxis { Position = AxisPosition.Left, Title = "Вероятность отказа (%)", Minimum = 0, Maximum = 100 };
             yAxis.MajorGridlineStyle = LineStyle.Solid;
-            yAxis.MajorGridlineColor = OxyColor.FromRgb(200, 200, 200);
-            yAxis.MinorGridlineStyle = LineStyle.Dot;
-            yAxis.MinorGridlineColor = OxyColor.FromRgb(230, 230, 230);
+            yAxis.MajorGridlineColor = OxyColor.FromRgb(220, 220, 220);
 
             model.Axes.Add(xAxis);
             model.Axes.Add(yAxis);
@@ -150,48 +195,98 @@ namespace Diplom.Forms
 
         private void PlotWvsLambda()
         {
-            var model = new PlotModel();
-            model.Title = "Зависимость времени в системе (W) от интенсивности бронирований (λ)";
-            model.Background = OxyColor.FromRgb(255, 255, 255);
-
-            var series = new LineSeries();
-            series.Title = "W(λ)";
-            series.MarkerType = MarkerType.Circle;
-            series.MarkerSize = 4;
-            series.StrokeThickness = 2;
-            series.Color = OxyColor.FromRgb(0, 128, 0);
-
-            for (double lambda = 1; lambda <= 15; lambda += 0.5)
+            var model = new PlotModel
             {
-                double rho = lambda / (_realC * _realMu);
-                if (rho >= 1) continue;
+                Title = "Среднее время в системе (W) в зависимости от спроса",
+                TitleFontSize = 14,
+                TitleFontWeight = FontWeights.Bold,
+                Background = OxyColor.FromRgb(253, 245, 230),
+                PlotAreaBorderColor = OxyColor.FromRgb(210, 180, 140)
+            };
 
+            var series = new LineSeries
+            {
+                Title = "W(λ), часы",
+                MarkerType = MarkerType.Circle,
+                MarkerSize = 3,
+                MarkerFill = OxyColor.FromRgb(85, 107, 47),
+                StrokeThickness = 3,
+                Color = OxyColor.FromRgb(85, 107, 47)
+            };
+
+            double limitLambda = _realC * _realMu;
+            double maxLambda = limitLambda * 0.99;
+
+            double maxCalculatedW = 0;
+
+            for (double lambda = 0.1; lambda <= maxLambda; lambda += 0.1)
+            {
                 var input = new QueueModel { Lambda = lambda, Mu = _realMu, C = _realC };
                 var result = _calculator.Calculate(input);
-                series.Points.Add(new DataPoint(lambda, result.W * 24));
-            }
 
+                if (!result.IsStable) break;
+
+                double wHours = result.W * 24;
+
+                if (wHours > maxCalculatedW) maxCalculatedW = wHours;
+
+                series.Points.Add(new DataPoint(lambda, wHours));
+            }
             model.Series.Add(series);
 
-            var xAxis = new LinearAxis();
-            xAxis.Position = AxisPosition.Bottom;
-            xAxis.Title = "Интенсивность бронирований λ (заявок/день)";
-            xAxis.Minimum = 0;
-            xAxis.Maximum = 15;
-            xAxis.MajorGridlineStyle = LineStyle.Solid;
-            xAxis.MajorGridlineColor = OxyColor.FromRgb(200, 200, 200);
-            xAxis.MinorGridlineStyle = LineStyle.Dot;
-            xAxis.MinorGridlineColor = OxyColor.FromRgb(230, 230, 230);
+            double axisMax = maxCalculatedW * 1.2;
+            if (axisMax <= 0) axisMax = 100;
 
-            var yAxis = new LinearAxis();
-            yAxis.Position = AxisPosition.Left;
-            yAxis.Title = "Среднее время в системе W (часы)";
-            yAxis.Minimum = 0;
-            yAxis.Maximum = 100;
+            var limitPoint = new ScatterSeries
+            {
+                Title = "Предел (ρ = 1)",
+                MarkerType = MarkerType.Diamond,
+                MarkerSize = 8,
+                MarkerFill = OxyColors.Crimson
+            };
+            limitPoint.Points.Add(new ScatterPoint(limitLambda, axisMax));
+            model.Series.Add(limitPoint);
+
+            var asymptote = new LineAnnotation
+            {
+                Type = LineAnnotationType.Vertical,
+                X = limitLambda,
+                Color = OxyColors.Crimson,
+                LineStyle = LineStyle.Dot,
+                StrokeThickness = 2
+            };
+            model.Annotations.Add(asymptote);
+
+            var limitAnnotation = new PointAnnotation
+            {
+                X = limitLambda,
+                Y = axisMax,
+                Text = "Предел (ρ = 1)\nДальше перегрузка",
+                Shape = MarkerType.None,
+                TextPosition = new DataPoint(limitLambda * 0.8, axisMax * 0.8),
+                TextColor = OxyColors.DarkRed
+            };
+            model.Annotations.Add(limitAnnotation);
+
+            var currentLine = new LineAnnotation
+            {
+                Type = LineAnnotationType.Vertical,
+                X = _realLambda,
+                Color = OxyColors.IndianRed,
+                LineStyle = LineStyle.Dash,
+                StrokeThickness = 2,
+                Text = $"Текущее λ = {_realLambda:F2}",
+                TextHorizontalAlignment = OxyPlot.HorizontalAlignment.Right
+            };
+            model.Annotations.Add(currentLine);
+
+            var xAxis = new LinearAxis { Position = AxisPosition.Bottom, Title = "Интенсивность бронирований λ (заявок/день)", Minimum = 0 };
+            xAxis.MajorGridlineStyle = LineStyle.Solid;
+            xAxis.MajorGridlineColor = OxyColor.FromRgb(220, 220, 220);
+
+            var yAxis = new LinearAxis { Position = AxisPosition.Left, Title = "Время в системе W (часы)", Minimum = 0, Maximum = axisMax };
             yAxis.MajorGridlineStyle = LineStyle.Solid;
-            yAxis.MajorGridlineColor = OxyColor.FromRgb(200, 200, 200);
-            yAxis.MinorGridlineStyle = LineStyle.Dot;
-            yAxis.MinorGridlineColor = OxyColor.FromRgb(230, 230, 230);
+            yAxis.MajorGridlineColor = OxyColor.FromRgb(220, 220, 220);
 
             model.Axes.Add(xAxis);
             model.Axes.Add(yAxis);
