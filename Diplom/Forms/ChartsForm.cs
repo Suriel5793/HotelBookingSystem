@@ -93,7 +93,7 @@ namespace Diplom.Forms
                 LineStyle = LineStyle.Dash,
                 StrokeThickness = 2,
                 Text = $"Текущее c = {_realC}",
-                TextHorizontalAlignment = HorizontalAlignment.Right
+                TextHorizontalAlignment = OxyPlot.HorizontalAlignment.Right
             };
             model.Annotations.Add(currentLine);
 
@@ -156,7 +156,7 @@ namespace Diplom.Forms
                 LineStyle = LineStyle.Dot,
                 StrokeThickness = 2,
                 Text = "Допустимый предел 5%",
-                TextHorizontalAlignment = HorizontalAlignment.Right,
+                TextHorizontalAlignment = OxyPlot.HorizontalAlignment.Right,
                 TextVerticalAlignment = VerticalAlignment.Top
             };
 
@@ -169,8 +169,8 @@ namespace Diplom.Forms
                 Color = OxyColors.IndianRed,
                 LineStyle = LineStyle.Dash,
                 StrokeThickness = 2,
-                Text = $"Текущее c = {_realC}"
-                TextHorizontalAlignment = HorizontalAlignment.Right
+                Text = $"Текущее c = {_realC}",
+                TextHorizontalAlignment = OxyPlot.HorizontalAlignment.Right
             };
             model.Annotations.Add(currentLine);
 
@@ -228,7 +228,7 @@ namespace Diplom.Forms
                 LineStyle = LineStyle.Dash,
                 StrokeThickness = 2,
                 Text = $"Текущее λ = {_realLambda:F2}",
-                TextHorizontalAlignment = HorizontalAlignment.Right
+                TextHorizontalAlignment = OxyPlot.HorizontalAlignment.Right
             };
             model.Annotations.Add(currentLine);
 
