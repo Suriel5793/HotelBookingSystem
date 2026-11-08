@@ -173,11 +173,7 @@ CREATE TRIGGER update_bookings_updated_at
                 CreateDatabase();
                 System.Threading.Thread.Sleep(500);
             }
-
-            if (!TablesExist())
-            {
-                CreateTables();
-            }
+            CreateTables();
         }
 
         public bool TestConnection()
