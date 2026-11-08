@@ -50,6 +50,10 @@ namespace Diplom.Forms
 
         private void PlotLvsC()
         {
+            int minStableC = (int)Math.Ceiling(_realLambda / _realMu) + 1;
+            int startC = Math.Max(1, minStableC - 10);
+            int endC = minStableC + 50;
+
             var model = new PlotModel
             {
                 Title = "Среднее число заявок (L) в зависимости от количества номеров",
@@ -70,7 +74,7 @@ namespace Diplom.Forms
                 InterpolationAlgorithm = InterpolationAlgorithms.CanonicalSpline
             };
 
-            for (int c = 1; c <= 40; c++)
+            for (int c = startC; c <= endC; c++)
             {
                 double rho = _realLambda / (c * _realMu);
                 if (rho >= 1) continue;
@@ -88,11 +92,12 @@ namespace Diplom.Forms
                 Color = OxyColors.IndianRed,
                 LineStyle = LineStyle.Dash,
                 StrokeThickness = 2,
-                Text = $"Текущее c = {_realC}"
+                Text = $"Текущее c = {_realC}",
+                TextHorizontalAlignment = HorizontalAlignment.Right
             };
             model.Annotations.Add(currentLine);
 
-            var xAxis = new LinearAxis { Position = AxisPosition.Bottom, Title = "Количество номеров (c)", Minimum = 1, Maximum = 40 };
+            var xAxis = new LinearAxis { Position = AxisPosition.Bottom, Title = "Количество номеров (c)", Minimum = startC, Maximum = endC };
             xAxis.MajorGridlineStyle = LineStyle.Solid;
             xAxis.MajorGridlineColor = OxyColor.FromRgb(220, 220, 220);
 
