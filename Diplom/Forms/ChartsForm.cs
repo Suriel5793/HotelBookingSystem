@@ -5,6 +5,7 @@ using OxyPlot.Series;
 using OxyPlot.Axes;
 using Diplom.Models;
 using Diplom.Services;
+using OxyPlot.Annotations;
 
 namespace Diplom.Forms
 {
@@ -29,13 +30,15 @@ namespace Diplom.Forms
         private void LoadRealData()
         {
             _realLambda = _db.CalculateRealLambda(DateTime.Now.AddDays(-30), DateTime.Now);
-            if (_realLambda <= 0) _realLambda = 5.87;
+            if (_realLambda <= 0) _realLambda = DataStore.LastLambda > 0 ? DataStore.LastLambda : 5.87;
 
             _realMu = _db.CalculateRealMu();
-            if (_realMu <= 0) _realMu = 0.5;
+            if (_realMu <= 0) _realMu = DataStore.LastMu > 0 ? DataStore.LastMu : 0.5;
 
             _realC = _db.GetRealRoomCount();
-            if (_realC <= 0) _realC = 10;
+            if (_realC <= 0) _realC = DataStore.LastC > 0 ? DataStore.LastC : 10;
+
+            this.Text = $"Аналитика — Графики (λ={_realLambda:F2}, μ={_realMu:F2}, c={_realC})";
         }
 
         private void LoadCharts()
