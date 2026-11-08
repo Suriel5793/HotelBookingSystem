@@ -177,48 +177,54 @@ namespace Diplom.Forms
 
         private void PlotWvsLambda()
         {
-            var model = new PlotModel();
-            model.Title = "Зависимость времени в системе (W) от интенсивности бронирований (λ)";
-            model.Background = OxyColor.FromRgb(255, 255, 255);
-
-            var series = new LineSeries();
-            series.Title = "W(λ)";
-            series.MarkerType = MarkerType.Circle;
-            series.MarkerSize = 4;
-            series.StrokeThickness = 2;
-            series.Color = OxyColor.FromRgb(0, 128, 0);
-
-            for (double lambda = 1; lambda <= 15; lambda += 0.5)
+            var model = new PlotModel
             {
-                double rho = lambda / (_realC * _realMu);
-                if (rho >= 1) continue;
+                Title = "Среднее время в системе (W) в зависимости от спроса",
+                TitleFontSize = 14,
+                TitleFontWeight = FontWeights.Bold,
+                Background = OxyColor.FromRgb(253, 245, 230),
+                PlotAreaBorderColor = OxyColor.FromRgb(210, 180, 140)
+            };
 
+            var series = new LineSeries
+            {
+                Title = "W(λ), часы",
+                MarkerType = MarkerType.Circle,
+                MarkerSize = 4,
+                MarkerFill = OxyColor.FromRgb(85, 107, 47),
+                StrokeThickness = 3,
+                Color = OxyColor.FromRgb(85, 107, 47),
+                Smooth = true
+            };
+
+            double maxLambda = _realC * _realMu * 0.95;
+
+            for (double lambda = 0.5; lambda <= maxLambda; lambda += 0.5)
+            {
                 var input = new QueueModel { Lambda = lambda, Mu = _realMu, C = _realC };
                 var result = _calculator.Calculate(input);
                 series.Points.Add(new DataPoint(lambda, result.W * 24));
             }
-
             model.Series.Add(series);
 
-            var xAxis = new LinearAxis();
-            xAxis.Position = AxisPosition.Bottom;
-            xAxis.Title = "Интенсивность бронирований λ (заявок/день)";
-            xAxis.Minimum = 0;
-            xAxis.Maximum = 15;
-            xAxis.MajorGridlineStyle = LineStyle.Solid;
-            xAxis.MajorGridlineColor = OxyColor.FromRgb(200, 200, 200);
-            xAxis.MinorGridlineStyle = LineStyle.Dot;
-            xAxis.MinorGridlineColor = OxyColor.FromRgb(230, 230, 230);
+            var currentLine = new LineAnnotation
+            {
+                Type = LineAnnotationType.Vertical,
+                X = _realLambda,
+                Color = OxyColors.IndianRed,
+                LineStyle = LineStyle.Dash,
+                StrokeThickness = 2,
+                Text = $"Текущее λ = {_realLambda:F2}"
+            };
+            model.Annotations.Add(currentLine);
 
-            var yAxis = new LinearAxis();
-            yAxis.Position = AxisPosition.Left;
-            yAxis.Title = "Среднее время в системе W (часы)";
-            yAxis.Minimum = 0;
-            yAxis.Maximum = 100;
+            var xAxis = new LinearAxis { Position = AxisPosition.Bottom, Title = "Интенсивность бронирований λ (заявок/день)", Minimum = 0 };
+            xAxis.MajorGridlineStyle = LineStyle.Solid;
+            xAxis.MajorGridlineColor = OxyColor.FromRgb(220, 220, 220);
+
+            var yAxis = new LinearAxis { Position = AxisPosition.Left, Title = "Время в системе W (часы)", Minimum = 0 };
             yAxis.MajorGridlineStyle = LineStyle.Solid;
-            yAxis.MajorGridlineColor = OxyColor.FromRgb(200, 200, 200);
-            yAxis.MinorGridlineStyle = LineStyle.Dot;
-            yAxis.MinorGridlineColor = OxyColor.FromRgb(230, 230, 230);
+            yAxis.MajorGridlineColor = OxyColor.FromRgb(220, 220, 220);
 
             model.Axes.Add(xAxis);
             model.Axes.Add(yAxis);
