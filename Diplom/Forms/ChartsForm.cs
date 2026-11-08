@@ -210,7 +210,7 @@ namespace Diplom.Forms
                 InterpolationAlgorithm = InterpolationAlgorithms.CanonicalSpline
             };
 
-            double maxLambda = _realC * _realMu * 0.95;
+            double maxLambda = _realC * _realMu * 1.2;
 
             for (double lambda = 0.5; lambda <= maxLambda; lambda += 0.5)
             {
@@ -227,7 +227,8 @@ namespace Diplom.Forms
                 Color = OxyColors.IndianRed,
                 LineStyle = LineStyle.Dash,
                 StrokeThickness = 2,
-                Text = $"Текущее λ = {_realLambda:F2}"
+                Text = $"Текущее λ = {_realLambda:F2}",
+                TextHorizontalAlignment = HorizontalAlignment.Right
             };
             model.Annotations.Add(currentLine);
 
