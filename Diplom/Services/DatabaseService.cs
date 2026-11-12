@@ -736,5 +736,69 @@ CREATE TRIGGER update_bookings_updated_at
             }
             return null;
         }
+
+        public List<User> GetAllUsers()
+        {
+            var users = new List<User>();
+            string sql = "SELECT user_id, login, role, created_at FROM Users ORDER BY user_id";
+
+            using (var conn = new NpgsqlConnection(DbConnectionString))
+            {
+                conn.Open();
+                using (var cmd = new NpgsqlCommand(sql, conn))
+                using (var reader = cmd.ExecuteReader())
+                {
+                    while (reader.Read())
+                    {
+                        users.Add(new User
+                        {
+                            UserId = reader.GetInt32(0),
+                            Login = reader.GetString(1),
+                            Role = reader.GetString(2),
+                            CreatedAt = reader.GetDateTime(3)
+                        });
+                    }
+                }
+            }
+            return users;
+        }
+
+        public void AddUser(string login, string password, string role)
+        {
+            using (var sha256 = System.Security.Cryptography.SHA256.Create())
+            {
+                var hashedBytes = sha256.ComputeHash(System.Text.Encoding.UTF8.GetBytes(password));
+                string passwordHash = BitConverter.ToString(hashedBytes).Replace("-", "").ToLower();
+
+                string sql = "INSERT INTO Users (login, password_hash, role) VALUES (@login, @hash, @role)";
+
+                using (var conn = new NpgsqlConnection(DbConnectionString))
+                {
+                    conn.Open();
+                    using (var cmd = new NpgsqlCommand(sql, conn))
+                    {
+                        cmd.Parameters.AddWithValue("@login", login);
+                        cmd.Parameters.AddWithValue("@hash", passwordHash);
+                        cmd.Parameters.AddWithValue("@role", role);
+                        cmd.ExecuteNonQuery();
+                    }
+                }
+            }
+        }
+
+        public void DeleteUser(int userId)
+        {
+            string sql = "DELETE FROM Users WHERE user_id = @id";
+
+            using (var conn = new NpgsqlConnection(DbConnectionString))
+            {
+                conn.Open();
+                using (var cmd = new NpgsqlCommand(sql, conn))
+                {
+                    cmd.Parameters.AddWithValue("@id", userId);
+                    cmd.ExecuteNonQuery();
+                }
+            }
+        }
     }
 }
