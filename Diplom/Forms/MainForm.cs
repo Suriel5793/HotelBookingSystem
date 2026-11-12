@@ -1,6 +1,7 @@
-﻿using System;
+﻿using Diplom.Forms;
+using Diplom.Models;
+using System;
 using System.Windows.Forms;
-using Diplom.Forms;
 
 namespace Diplom.Forms
 {
@@ -67,6 +68,34 @@ namespace Diplom.Forms
                 "О программе",
                 MessageBoxButtons.OK,
                 MessageBoxIcon.Information);
+        }
+
+        private void MainForm_Load(object sender, EventArgs e)
+        {
+            if (DataStore.CurrentUser != null)
+            {
+                if (DataStore.CurrentUser.Role == "manager")
+                {
+                    this.номераToolStripMenuItem.Enabled = false; // Запрещаем менеджеру менять номера
+                    this.Text = $"Отель: Управление (Менеджер: {DataStore.CurrentUser.Login})";
+                }
+                else
+                {
+                    this.Text = $"Отель: Управление (Администратор: {DataStore.CurrentUser.Login})";
+                }
+            }
+        }
+
+        private void сменитьПользователяToolStripMenuItem_Click(object sender, EventArgs e)
+        {
+            var result = MessageBox.Show("Вы уверены, что хотите выйти из аккаунта?", "Смена пользователя",
+                MessageBoxButtons.YesNo, MessageBoxIcon.Question);
+
+            if (result == DialogResult.Yes)
+            {
+                DataStore.CurrentUser = null;
+                Application.Restart(); // Перезапуск программы для вызова формы входа
+            }
         }
     }
 }
