@@ -21,13 +21,12 @@
         private System.Windows.Forms.ToolStripMenuItem справкаToolStripMenuItem;
         private System.Windows.Forms.ToolStripMenuItem оПрограммеToolStripMenuItem;
 
-        // НОВОЕ ПОЛЕ ДЛЯ КНОПКИ СМЕНЫ ПОЛЬЗОВАТЕЛЯ
         private System.Windows.Forms.ToolStripMenuItem сменитьПользователяToolStripMenuItem;
+        private System.Windows.Forms.ToolStripMenuItem управлениеПользователямиToolStripMenuItem;
 
         private System.Windows.Forms.Panel pnlHeader;
         private System.Windows.Forms.Label lblTitle;
         private System.Windows.Forms.Label lblSubtitle;
-
         protected override void Dispose(bool disposing)
         {
             if (disposing && (components != null))
@@ -55,6 +54,7 @@
             this.справкаToolStripMenuItem = new System.Windows.Forms.ToolStripMenuItem();
             this.оПрограммеToolStripMenuItem = new System.Windows.Forms.ToolStripMenuItem();
             this.сменитьПользователяToolStripMenuItem = new System.Windows.Forms.ToolStripMenuItem();
+            this.управлениеПользователямиToolStripMenuItem = new System.Windows.Forms.ToolStripMenuItem();
             this.pnlHeader = new System.Windows.Forms.Panel();
             this.lblTitle = new System.Windows.Forms.Label();
             this.lblSubtitle = new System.Windows.Forms.Label();
@@ -190,11 +190,19 @@
             this.выходИзПрограммыToolStripMenuItem.Size = new System.Drawing.Size(180, 22);
             this.выходИзПрограммыToolStripMenuItem.Text = "Выход";
             this.выходИзПрограммыToolStripMenuItem.Click += new System.EventHandler(this.выходИзПрограммыToolStripMenuItem_Click);
+            //
+            // Управление Пользователями
+            //
+            this.управлениеПользователямиToolStripMenuItem.Name = "управлениеПользователямиToolStripMenuItem";
+            this.управлениеПользователямиToolStripMenuItem.Size = new System.Drawing.Size(180, 22);
+            this.управлениеПользователямиToolStripMenuItem.Text = "Управление пользователями";
+            this.управлениеПользователямиToolStripMenuItem.Click += new System.EventHandler(this.управлениеПользователямиToolStripMenuItem_Click);
             // 
             // справкаToolStripMenuItem
             // 
             this.справкаToolStripMenuItem.DropDownItems.AddRange(new System.Windows.Forms.ToolStripItem[] {
             this.оПрограммеToolStripMenuItem,
+            this.управлениеПользователямиToolStripMenuItem,
             this.сменитьПользователяToolStripMenuItem});
             this.справкаToolStripMenuItem.ForeColor = System.Drawing.Color.FromArgb(((int)(((byte)(62)))), ((int)(((byte)(44)))), ((int)(((byte)(28)))));
             this.справкаToolStripMenuItem.Name = "справкаToolStripMenuItem";

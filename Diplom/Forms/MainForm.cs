@@ -76,7 +76,8 @@ namespace Diplom.Forms
             {
                 if (DataStore.CurrentUser.Role == "manager")
                 {
-                    this.номераToolStripMenuItem.Enabled = false; // Запрещаем менеджеру менять номера
+                    this.номераToolStripMenuItem.Enabled = false;
+                    this.управлениеПользователямиToolStripMenuItem.Enabled = false;
                     this.Text = $"Отель: Управление (Менеджер: {DataStore.CurrentUser.Login})";
                 }
                 else
@@ -94,8 +95,14 @@ namespace Diplom.Forms
             if (result == DialogResult.Yes)
             {
                 DataStore.CurrentUser = null;
-                Application.Restart(); // Перезапуск программы для вызова формы входа
+                Application.Restart();
             }
+        }
+
+        private void управлениеПользователямиToolStripMenuItem_Click(object sender, EventArgs e)
+        {
+            var form = new UsersForm();
+            form.ShowDialog();
         }
     }
 }
