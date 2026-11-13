@@ -138,13 +138,20 @@ namespace Diplom.Forms
 
         private void BtnFindOptimalC_Click(object sender, EventArgs e)
         {
-            int optimalC = _recommendationService.FindMinCForPReject(_adjustedLambda, _realMu, 0.05);
+            // Берем среднюю цену и средние затраты из номеров
+            var rooms = _db.GetAllRooms();
+            decimal avgPrice = rooms.Count > 0 ? rooms.Average(r => r.BasePricePerNight) : 4000m;
+            decimal avgCost = rooms.Count > 0 ? rooms.Average(r => r.MaintenanceCost) : 1500m;
+
+            // Вызываем новый метод поиска по прибыли
+            int optimalC = _recommendationService.FindOptimalCByProfit(_adjustedLambda, _realMu, avgPrice, avgCost);
 
             if (optimalC > 0)
             {
                 string message = $"Оптимальное количество номеров при Pотк ≤ 5%: {optimalC}\n\n" +
                                  $"Текущее количество: {_realC}\n" +
-                                 $"С учётом внешних факторов λ = {_adjustedLambda:F2}\n\n";
+                                 $"Средняя цена: {avgPrice:C0}\n" +
+                                 $"Средние затраты: {avgCost:C0}\n\n";
 
                 if (optimalC > _realC)
                     message += $"Рекомендуется добавить {optimalC - _realC} номеров";
