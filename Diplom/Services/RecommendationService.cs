@@ -92,25 +92,36 @@ namespace Diplom.Services
 
             return recommendations;
         }
-        public int FindMinCForPReject(double lambda, double mu, double maxPReject)
+        public int FindOptimalCByProfit(double lambda, double mu, decimal avgPrice, decimal avgCost)
         {
             var calculator = new MmcCalculator();
+            double maxProfit = double.MinValue;
+            int bestC = -1;
 
             for (int c = 1; c <= 500; c++)
             {
                 double rho = lambda / (c * mu);
-                if (rho >= 1) continue;
+                if (rho >= 1) continue; // Система должна быть стабильна
 
                 var input = new QueueModel { Lambda = lambda, Mu = mu, C = c };
                 var result = calculator.Calculate(input);
 
-                if (result.P_reject <= maxPReject)
+                // Жесткое условие: отказов не более 5%
+                if (result.P_reject > 0.05) continue;
+
+                // Считаем прибыль: (Занятые номера * Цена) - (Всего номеров * Затраты)
+                double occupiedRooms = c * result.Rho;
+                double revenue = occupiedRooms * (double)avgPrice;
+                double costs = c * (double)avgCost;
+                double profit = revenue - costs;
+
+                if (profit > maxProfit)
                 {
-                    return c;
+                    maxProfit = profit;
+                    bestC = c;
                 }
             }
-
-            return -1;
+            return bestC;
         }
 
         public decimal CalculateOptimalPrice(decimal basePrice, double rho)
