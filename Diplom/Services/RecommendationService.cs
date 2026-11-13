@@ -22,7 +22,8 @@ namespace Diplom.Services
             if (result.P_reject > 0.1)
             {
                 recommendations.Add($"Высокая вероятность отказа: {result.P_reject * 100:F1}%");
-                recommendations.Add($"Рекомендуется увеличить количество номеров до {FindMinCForPReject(lambda, mu, 0.05)}");
+                int recommendedC = (int)Math.Ceiling(lambda / mu) + 1;
+                recommendations.Add($"Рекомендуется увеличить количество номеров до {recommendedC}");
                 recommendations.Add("Внедрите систему overbooking (перебронирование) с компенсациями");
             }
             else if (result.P_reject > 0.05)
