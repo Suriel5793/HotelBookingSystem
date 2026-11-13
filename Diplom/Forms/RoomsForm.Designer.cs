@@ -24,6 +24,8 @@
         private System.Windows.Forms.Button btnCancel;
         private System.Windows.Forms.Panel pnlHeader;
         private System.Windows.Forms.Label lblFormTitle;
+        private System.Windows.Forms.Label lblMaintenanceCost;
+        private System.Windows.Forms.TextBox txtMaintenanceCost;
 
         protected override void Dispose(bool disposing)
         {
@@ -55,6 +57,8 @@
             this.btnCancel = new System.Windows.Forms.Button();
             this.pnlHeader = new System.Windows.Forms.Panel();
             this.lblFormTitle = new System.Windows.Forms.Label();
+            this.grpEdit.Controls.Add(this.lblMaintenanceCost);
+            this.grpEdit.Controls.Add(this.txtMaintenanceCost);
             ((System.ComponentModel.ISupportInitialize)(this.dgvRooms)).BeginInit();
             this.grpEdit.SuspendLayout();
             this.pnlHeader.SuspendLayout();
@@ -230,12 +234,35 @@
             this.txtPrice.Size = new System.Drawing.Size(230, 23);
             this.txtPrice.TabIndex = 5;
             // 
+            // lblMaintenanceCost
+            // 
+            this.lblMaintenanceCost = new System.Windows.Forms.Label();
+            this.lblMaintenanceCost.AutoSize = true;
+            this.lblMaintenanceCost.Font = new System.Drawing.Font("Segoe UI", 9F);
+            this.lblMaintenanceCost.ForeColor = System.Drawing.Color.FromArgb(62, 44, 28);
+            this.lblMaintenanceCost.Location = new System.Drawing.Point(15, 174);
+            this.lblMaintenanceCost.Name = "lblMaintenanceCost";
+            this.lblMaintenanceCost.Size = new System.Drawing.Size(127, 15);
+            this.lblMaintenanceCost.TabIndex = 12;
+            this.lblMaintenanceCost.Text = "Затраты в сутки, руб.:";
+
+            // 
+            // txtMaintenanceCost
+            // 
+            this.txtMaintenanceCost = new System.Windows.Forms.TextBox();
+            this.txtMaintenanceCost.BackColor = System.Drawing.Color.FromArgb(255, 248, 225);
+            this.txtMaintenanceCost.BorderStyle = System.Windows.Forms.BorderStyle.FixedSingle;
+            this.txtMaintenanceCost.Location = new System.Drawing.Point(15, 192);
+            this.txtMaintenanceCost.Name = "txtMaintenanceCost";
+            this.txtMaintenanceCost.Size = new System.Drawing.Size(230, 23);
+            this.txtMaintenanceCost.TabIndex = 13;
+            // 
             // lblCapacity
             // 
             this.lblCapacity.AutoSize = true;
             this.lblCapacity.Font = new System.Drawing.Font("Segoe UI", 9F);
             this.lblCapacity.ForeColor = System.Drawing.Color.FromArgb(((int)(((byte)(62)))), ((int)(((byte)(44)))), ((int)(((byte)(28)))));
-            this.lblCapacity.Location = new System.Drawing.Point(15, 174);
+            this.lblCapacity.Location = new System.Drawing.Point(15, 222);
             this.lblCapacity.Name = "lblCapacity";
             this.lblCapacity.Size = new System.Drawing.Size(83, 15);
             this.lblCapacity.TabIndex = 6;
@@ -245,7 +272,7 @@
             // 
             this.txtCapacity.BackColor = System.Drawing.Color.FromArgb(((int)(((byte)(255)))), ((int)(((byte)(248)))), ((int)(((byte)(225)))));
             this.txtCapacity.BorderStyle = System.Windows.Forms.BorderStyle.FixedSingle;
-            this.txtCapacity.Location = new System.Drawing.Point(15, 192);
+            this.txtCapacity.Location = new System.Drawing.Point(15, 240);
             this.txtCapacity.Name = "txtCapacity";
             this.txtCapacity.Size = new System.Drawing.Size(230, 23);
             this.txtCapacity.TabIndex = 7;
@@ -255,7 +282,7 @@
             this.lblStatusRoom.AutoSize = true;
             this.lblStatusRoom.Font = new System.Drawing.Font("Segoe UI", 9F);
             this.lblStatusRoom.ForeColor = System.Drawing.Color.FromArgb(((int)(((byte)(62)))), ((int)(((byte)(44)))), ((int)(((byte)(28)))));
-            this.lblStatusRoom.Location = new System.Drawing.Point(15, 222);
+            this.lblStatusRoom.Location = new System.Drawing.Point(15, 270);
             this.lblStatusRoom.Name = "lblStatusRoom";
             this.lblStatusRoom.Size = new System.Drawing.Size(46, 15);
             this.lblStatusRoom.TabIndex = 8;
@@ -271,7 +298,7 @@
             "занят",
             "ремонт",
             "забронирован"});
-            this.cmbStatus.Location = new System.Drawing.Point(15, 240);
+            this.cmbStatus.Location = new System.Drawing.Point(15, 288);
             this.cmbStatus.Name = "cmbStatus";
             this.cmbStatus.Size = new System.Drawing.Size(230, 23);
             this.cmbStatus.TabIndex = 9;
@@ -283,7 +310,7 @@
             this.btnSave.FlatStyle = System.Windows.Forms.FlatStyle.Flat;
             this.btnSave.Font = new System.Drawing.Font("Segoe UI", 9F, System.Drawing.FontStyle.Bold);
             this.btnSave.ForeColor = System.Drawing.Color.FromArgb(((int)(((byte)(62)))), ((int)(((byte)(44)))), ((int)(((byte)(28)))));
-            this.btnSave.Location = new System.Drawing.Point(32, 280);
+            this.btnSave.Location = new System.Drawing.Point(32, 330);
             this.btnSave.Name = "btnSave";
             this.btnSave.Size = new System.Drawing.Size(98, 30);
             this.btnSave.TabIndex = 10;
@@ -298,7 +325,7 @@
             this.btnCancel.FlatStyle = System.Windows.Forms.FlatStyle.Flat;
             this.btnCancel.Font = new System.Drawing.Font("Segoe UI", 9F, System.Drawing.FontStyle.Bold);
             this.btnCancel.ForeColor = System.Drawing.Color.FromArgb(((int)(((byte)(62)))), ((int)(((byte)(44)))), ((int)(((byte)(28)))));
-            this.btnCancel.Location = new System.Drawing.Point(140, 280);
+            this.btnCancel.Location = new System.Drawing.Point(140, 330);
             this.btnCancel.Name = "btnCancel";
             this.btnCancel.Size = new System.Drawing.Size(90, 30);
             this.btnCancel.TabIndex = 11;
