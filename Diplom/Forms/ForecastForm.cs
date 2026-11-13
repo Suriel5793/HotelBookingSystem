@@ -98,8 +98,8 @@ namespace Diplom.Forms
                 return;
             }
 
-            double occupancyRate = (1 - result.P_reject) * 100;
-            lblForecast.Text = $"Прогноз загрузки: {occupancyRate:F1}% (с учётом внешних факторов)";
+            double occupancyRate = result.Rho * 100;
+            lblForecast.Text = $"Прогноз загрузки (ρ): {occupancyRate:F1}% (с учётом внешних факторов)";
             lblForecast.ForeColor = System.Drawing.Color.FromArgb(34, 139, 34);
 
             decimal avgPrice = GetAveragePrice();
