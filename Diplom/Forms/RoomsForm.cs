@@ -31,6 +31,7 @@ namespace Diplom.Forms
                 r.Category,
                 r.BasePricePerNight,
                 r.Capacity,
+                r.MaintenanceCost,
                 r.Status
             }).ToList();
 
@@ -40,6 +41,7 @@ namespace Diplom.Forms
                 dgvRooms.Columns["RoomNumber"].HeaderText = "Номер";
                 dgvRooms.Columns["Category"].HeaderText = "Категория";
                 dgvRooms.Columns["BasePricePerNight"].HeaderText = "Цена за ночь, руб.";
+                dgvRooms.Columns["MaintenanceCost"].HeaderText = "Затраты в сутки, руб.";
                 dgvRooms.Columns["Capacity"].HeaderText = "Вместимость";
                 dgvRooms.Columns["Status"].HeaderText = "Статус";
             }

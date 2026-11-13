@@ -159,6 +159,8 @@
             this.grpEdit.Controls.Add(this.txtCategory);
             this.grpEdit.Controls.Add(this.lblPrice);
             this.grpEdit.Controls.Add(this.txtPrice);
+            this.grpEdit.Controls.Add(this.lblMaintenanceCost);
+            this.grpEdit.Controls.Add(this.txtMaintenanceCost);
             this.grpEdit.Controls.Add(this.lblCapacity);
             this.grpEdit.Controls.Add(this.txtCapacity);
             this.grpEdit.Controls.Add(this.lblStatusRoom);
@@ -169,7 +171,7 @@
             this.grpEdit.ForeColor = System.Drawing.Color.FromArgb(((int)(((byte)(92)))), ((int)(((byte)(64)))), ((int)(((byte)(51)))));
             this.grpEdit.Location = new System.Drawing.Point(660, 210);
             this.grpEdit.Name = "grpEdit";
-            this.grpEdit.Size = new System.Drawing.Size(260, 330);
+            this.grpEdit.Size = new System.Drawing.Size(260, 380);
             this.grpEdit.TabIndex = 5;
             this.grpEdit.TabStop = false;
             this.grpEdit.Text = "Редактирование номера";
