@@ -28,7 +28,7 @@ namespace Diplom.Forms
 
         private void LoadRealData()
         {
-            _realLambda = _db.CalculateRealLambda(DateTime.Now.AddDays(-30), DateTime.Now);
+            _realLambda = _db.CalculateRealLambda();
             if (_realLambda <= 0) _realLambda = 5.87;
 
             _realMu = _db.CalculateRealMu();
