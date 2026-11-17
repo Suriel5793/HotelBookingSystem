@@ -224,17 +224,15 @@ namespace Diplom.Forms
             var series = new LineSeries
             {
                 Title = "Прибыль (руб.)",
-                MarkerType = MarkerType.Circle,
-                MarkerSize = 3,
-                StrokeThickness = 3,
-                Color = OxyColor.FromRgb(34, 139, 34) // Зеленый (деньги)
+                StrokeThickness = 4,
+                Color = OxyColor.FromRgb(34, 139, 34),
+                InterpolationAlgorithm = InterpolationAlgorithms.CanonicalSpline
             };
 
             var calculator = new MmcCalculator();
             double bestProfit = double.MinValue;
             int bestC = -1;
 
-            // Перебираем количество номеров от 1 до 100
             for (int c = 1; c <= 100; c++)
             {
                 double rho = _realLambda / (c * _realMu);
@@ -243,7 +241,6 @@ namespace Diplom.Forms
                 var input = new QueueModel { Lambda = _realLambda, Mu = _realMu, C = c };
                 var result = calculator.Calculate(input);
 
-                // Считаем прибыль за 30 дней
                 double occupiedRooms = c * result.Rho;
                 double revenue = occupiedRooms * (double)_avgPrice * 30;
                 double costs = c * (double)_avgCost * 30;
@@ -260,18 +257,33 @@ namespace Diplom.Forms
 
             model.Series.Add(series);
 
-            // Добавляем точку максимальной прибыли (золотая)
-            var peakPoint = new ScatterSeries
+            var zeroLine = new LineAnnotation
             {
-                Title = "Максимум прибыли",
-                MarkerType = MarkerType.Diamond,
-                MarkerSize = 8,
-                MarkerFill = OxyColors.Gold
+                Type = LineAnnotationType.Horizontal,
+                Y = 0,
+                Color = OxyColors.Black,
+                LineStyle = LineStyle.Dash,
+                StrokeThickness = 1.5,
+                Text = "Окупаемость",
+                TextHorizontalAlignment = OxyPlot.HorizontalAlignment.Left
             };
-            peakPoint.Points.Add(new ScatterPoint(bestC, bestProfit));
-            model.Series.Add(peakPoint);
+            model.Annotations.Add(zeroLine);
 
-            // Линия текущего состояния
+            if (bestC > 0)
+            {
+                var peakPoint = new ScatterSeries
+                {
+                    Title = "Максимум прибыли",
+                    MarkerType = MarkerType.Diamond,
+                    MarkerSize = 10,
+                    MarkerFill = OxyColors.Gold,
+                    MarkerStroke = OxyColors.Black,
+                    MarkerStrokeThickness = 1
+                };
+                peakPoint.Points.Add(new ScatterPoint(bestC, bestProfit));
+                model.Series.Add(peakPoint);
+            }
+
             var currentLine = new LineAnnotation
             {
                 Type = LineAnnotationType.Vertical,
@@ -289,6 +301,7 @@ namespace Diplom.Forms
             xAxis.MajorGridlineColor = OxyColor.FromRgb(220, 220, 220);
 
             var yAxis = new LinearAxis { Position = AxisPosition.Left, Title = "Прибыль за 30 дней (руб.)" };
+            yAxis.StringFormat = "N0"; // Формат "1 000 000"
             yAxis.MajorGridlineStyle = LineStyle.Solid;
             yAxis.MajorGridlineColor = OxyColor.FromRgb(220, 220, 220);
 
