@@ -643,7 +643,7 @@ CREATE TRIGGER update_bookings_updated_at
                     cmd.Parameters.AddWithValue("@date", date);
                     var result = cmd.ExecuteScalar();
                     double sum = result == DBNull.Value ? 0 : Convert.ToDouble(result);
-                    return 1.0 + sum; // базовый коэффициент 1 + сумма отклонений
+                    return 1.0 + sum;
                 }
             }
         }
@@ -692,6 +692,32 @@ CREATE TRIGGER update_bookings_updated_at
                 DataStore.NextRoomId = DataStore.Rooms.Max(r => r.RoomId) + 1;
             if (DataStore.Bookings.Count > 0)
                 DataStore.NextBookingId = DataStore.Bookings.Max(b => b.BookingId) + 1;
+        }
+
+        public double CalculateCancellationRate()
+        {
+            try
+            {
+                string sql = @"
+            SELECT 
+                COUNT(*) FILTER (WHERE status IN ('отменено', 'не заехал')) * 1.0 / NULLIF(COUNT(*), 0) 
+            FROM Bookings";
+
+                using (var conn = new NpgsqlConnection(DbConnectionString))
+                {
+                    conn.Open();
+                    using (var cmd = new NpgsqlCommand(sql, conn))
+                    {
+                        var result = cmd.ExecuteScalar();
+                        if (result == DBNull.Value) return 0;
+                        return Convert.ToDouble(result);
+                    }
+                }
+            }
+            catch
+            {
+                return 0;
+            }
         }
     }
 }
