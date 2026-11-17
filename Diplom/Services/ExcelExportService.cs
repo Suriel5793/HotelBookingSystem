@@ -52,5 +52,54 @@ namespace Diplom.Services
                 workbook.SaveAs(filePath);
             }
         }
+
+        public void ExportForecast(string filePath, double lambda, double mu, int c,
+            double rho, double pReject, decimal revenue, string recommendations)
+        {
+            using (var workbook = new XLWorkbook())
+            {
+                var worksheet = workbook.Worksheets.Add("Прогноз");
+
+                worksheet.Cell(1, 1).Value = "ОТЧЕТ ПО ПРОГНОЗУ";
+                worksheet.Cell(1, 1).Style.Font.Bold = true;
+                worksheet.Cell(1, 1).Style.Font.FontSize = 14;
+
+                worksheet.Cell(3, 1).Value = "Параметр";
+                worksheet.Cell(3, 2).Value = "Значение";
+                worksheet.Row(3).Style.Font.Bold = true;
+
+                worksheet.Cell(4, 1).Value = "Интенсивность спроса (λ)";
+                worksheet.Cell(4, 2).Value = Math.Round(lambda, 4);
+
+                worksheet.Cell(5, 1).Value = "Интенсивность обслуживания (μ)";
+                worksheet.Cell(5, 2).Value = Math.Round(mu, 4);
+
+                worksheet.Cell(6, 1).Value = "Количество номеров (c)";
+                worksheet.Cell(6, 2).Value = c;
+
+                worksheet.Cell(7, 1).Value = "Коэффициент загрузки (ρ)";
+                worksheet.Cell(7, 2).Value = Math.Round(rho, 4);
+
+                worksheet.Cell(8, 1).Value = "Вероятность отказа";
+                worksheet.Cell(8, 2).Value = $"{Math.Round(pReject * 100, 2)}%";
+
+                worksheet.Cell(9, 1).Value = "Прогноз выручки (мес.)";
+                worksheet.Cell(9, 2).Value = revenue;
+
+                worksheet.Cell(11, 1).Value = "РЕКОМЕНДАЦИИ:";
+                worksheet.Cell(11, 1).Style.Font.Bold = true;
+                worksheet.Cell(12, 1).Value = recommendations;
+                worksheet.Cell(12, 1).Style.Alignment.WrapText = true;
+
+                // Форматирование
+                var range = worksheet.Range(3, 1, 9, 2);
+                range.Style.Border.OutsideBorder = XLBorderStyleValues.Thin;
+                range.Style.Border.InsideBorder = XLBorderStyleValues.Thin;
+                worksheet.Column(1).Width = 35;
+                worksheet.Column(2).Width = 25;
+
+                workbook.SaveAs(filePath);
+            }
+        }
     }
 }
