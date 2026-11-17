@@ -3,6 +3,7 @@ using System.Linq;
 using System.Windows.Forms;
 using Diplom.Models;
 using Diplom.Services;
+using System.Collections.Generic;
 
 namespace Diplom.Forms
 {
@@ -17,6 +18,23 @@ namespace Diplom.Forms
         private double _factorsImpact;
         private double _adjustedLambda;
         private double _cancelRate;
+
+        private readonly Dictionary<int, double> _seasonality = new Dictionary<int, double>
+        {
+            { 1, 0.8 },  // Январь (низкий сезон)
+            { 2, 0.8 },  // Февраль
+            { 3, 0.9 },  // Март
+            { 4, 1.0 },  // Апрель
+            { 5, 1.1 },  // Май
+            { 6, 1.3 },  // Июнь (высокий сезон)
+            { 7, 1.5 },  // Июль (пик)
+            { 8, 1.5 },  // Август (пик)
+            { 9, 1.2 },  // Сентябрь
+            { 10, 1.0 }, // Октябрь
+            { 11, 0.9 }, // Ноябрь
+            { 12, 1.1 }  // Декабрь (новогодние праздники)
+        };
+        private double _seasonalityImpact = 1.0;
         public ForecastForm()
         {
             InitializeComponent();
@@ -40,38 +58,19 @@ namespace Diplom.Forms
             if (_realC <= 0) _realC = 10;
 
             _cancelRate = _db.CalculateCancellationRate();
-
             _realLambda = _realLambda * (1 - _cancelRate);
+
+            int currentMonth = DateTime.Now.Month;
+            _seasonalityImpact = _seasonality.ContainsKey(currentMonth) ? _seasonality[currentMonth] : 1.0;
+            _realLambda = _realLambda * _seasonalityImpact;
 
             _factorsImpact = _db.GetFactorsImpact(DateTime.Now.AddDays(7));
             _adjustedLambda = _realLambda * _factorsImpact;
         }
 
-        private void ShowFactorsInfo()
-        {
-            var activeFactors = _db.GetActiveFactors(DateTime.Now.AddDays(7));
-
-            if (activeFactors.Count > 0 && _factorsImpact != 1.0)
-            {
-                string factorsText = "📊 Влияние внешних факторов:\n";
-                foreach (var f in activeFactors)
-                {
-                    double impactPercent = (double)(f.ImpactCoefficient - 1) * 100;
-                    string arrow = impactPercent > 0 ? "↑" : "↓";
-                    factorsText += $"  {arrow} {f.Type}: {f.Value} — влияние {impactPercent:+0;-0;0}%\n";
-                }
-                factorsText += $"\n📈 Итоговый коэффициент влияния: {_factorsImpact:F2}";
-                factorsText += $"\n📊 Скорректированный спрос: λ = {_realLambda:F2} → {_adjustedLambda:F2}";
-
-                MessageBox.Show(factorsText, "Внешние факторы учтены в прогнозе",
-                    MessageBoxButtons.OK, MessageBoxIcon.Information);
-            }
-        }
-
         private void LoadForecast()
         {
-            lblCurrentParams.Text = $"λ = {_adjustedLambda:F2} (с учётом факторов: {_factorsImpact:F2}× и отмен: {_cancelRate * 100:F1}%), μ = {_realMu:F2}, c = {_realC}";
-
+            lblCurrentParams.Text = $"λ = {_adjustedLambda:F2} (факторы: {_factorsImpact:F2}×, отмены: {_cancelRate * 100:F1}%, сезон: {_seasonalityImpact:F2}×), μ = {_realMu:F2}, c = {_realC}";
             var input = new QueueModel { Lambda = _adjustedLambda, Mu = _realMu, C = _realC };
             var result = _calculator.Calculate(input);
 
