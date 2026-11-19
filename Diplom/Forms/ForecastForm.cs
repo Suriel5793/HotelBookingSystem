@@ -3,6 +3,7 @@ using System.Linq;
 using System.Windows.Forms;
 using Diplom.Models;
 using Diplom.Services;
+using System.Collections.Generic;
 
 namespace Diplom.Forms
 {
@@ -16,7 +17,24 @@ namespace Diplom.Forms
         private int _realC;
         private double _factorsImpact;
         private double _adjustedLambda;
+        private double _cancelRate;
 
+        private readonly Dictionary<int, double> _seasonality = new Dictionary<int, double>
+        {
+            { 1, 0.8 },  // Январь (низкий сезон)
+            { 2, 0.8 },  // Февраль
+            { 3, 0.9 },  // Март
+            { 4, 1.0 },  // Апрель
+            { 5, 1.1 },  // Май
+            { 6, 1.3 },  // Июнь (высокий сезон)
+            { 7, 1.5 },  // Июль (пик)
+            { 8, 1.5 },  // Август (пик)
+            { 9, 1.2 },  // Сентябрь
+            { 10, 1.0 }, // Октябрь
+            { 11, 0.9 }, // Ноябрь
+            { 12, 1.1 }  // Декабрь (новогодние праздники)
+        };
+        private double _seasonalityImpact = 1.0;
         public ForecastForm()
         {
             InitializeComponent();
@@ -30,11 +48,8 @@ namespace Diplom.Forms
 
         private void LoadRealData()
         {
-            _realLambda = _db.CalculateRealLambda(DateTime.Now.AddDays(-30), DateTime.Now);
+            _realLambda = _db.CalculateRealLambda();
             if (_realLambda <= 0) _realLambda = 5.87;
-
-            _factorsImpact = _db.GetFactorsImpact(DateTime.Now.AddDays(7)); // прогноз на неделю вперёд
-            _adjustedLambda = _realLambda * _factorsImpact;
 
             _realMu = _db.CalculateRealMu();
             if (_realMu <= 0) _realMu = 0.5;
@@ -42,12 +57,16 @@ namespace Diplom.Forms
             _realC = _db.GetRealRoomCount();
             if (_realC <= 0) _realC = 10;
 
-            ShowFactorsInfo();
-        }
+            _cancelRate = _db.CalculateCancellationRate();
+            _realLambda = _realLambda * (1 - _cancelRate);
 
-        private void ShowFactorsInfo()
-        {
-            var activeFactors = _db.GetActiveFactors(DateTime.Now.AddDays(7));
+            int currentMonth = DateTime.Now.Month;
+            _seasonalityImpact = _seasonality.ContainsKey(currentMonth) ? _seasonality[currentMonth] : 1.0;
+            _realLambda = _realLambda * _seasonalityImpact;
+
+Seasonality-and-cancellations
+            _factorsImpact = _db.GetFactorsImpact(DateTime.Now.AddDays(7));
+            _adjustedLambda = _realLambda * _factorsImpact;
 
             if (activeFactors.Count > 0 && _factorsImpact != 1.0)
             {
@@ -64,12 +83,12 @@ namespace Diplom.Forms
                 MessageBox.Show(factorsText, "Внешние факторы учтены в прогнозе",
                     MessageBoxButtons.OK, MessageBoxIcon.Information);
             }
+develop
         }
 
         private void LoadForecast()
         {
-            lblCurrentParams.Text = $"λ = {_adjustedLambda:F2} (с учётом факторов: {_factorsImpact:F2}×), μ = {_realMu:F2}, c = {_realC}";
-
+            lblCurrentParams.Text = $"λ = {_adjustedLambda:F2} (факторы: {_factorsImpact:F2}×, отмены: {_cancelRate * 100:F1}%, сезон: {_seasonalityImpact:F2}×), μ = {_realMu:F2}, c = {_realC}";
             var input = new QueueModel { Lambda = _adjustedLambda, Mu = _realMu, C = _realC };
             var result = _calculator.Calculate(input);
 
@@ -99,7 +118,11 @@ namespace Diplom.Forms
             }
 
             double occupancyRate = result.Rho * 100;
+Seasonality-and-cancellations
+            lblForecast.Text = $"Прогноз загрузки (ρ): {occupancyRate:F1}% (с учётом факторов и отмен)";
+
             lblForecast.Text = $"Прогноз загрузки (ρ): {occupancyRate:F1}% (с учётом внешних факторов)";
+develop
             lblForecast.ForeColor = System.Drawing.Color.FromArgb(34, 139, 34);
 
             decimal avgPrice = GetAveragePrice();

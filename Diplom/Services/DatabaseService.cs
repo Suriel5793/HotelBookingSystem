@@ -1,8 +1,9 @@
-﻿using System;
+﻿using Diplom.Models;
+using Npgsql;
+using System;
 using System.Collections.Generic;
 using System.Linq;
-using Npgsql;
-using Diplom.Models;
+using System.Windows.Forms;
 
 namespace Diplom.Services
 {
@@ -547,33 +548,41 @@ develop
             }
         }
 
-        public double CalculateRealLambda(DateTime startDate, DateTime endDate)
+        public double CalculateRealLambda()
         {
             try
             {
                 string sql = @"
-                    SELECT COUNT(*) * 1.0 / (EXTRACT(DAY FROM ($2 - $1)) + 1)
-                    FROM Bookings 
-                    WHERE created_at BETWEEN @start AND @end
-                    AND status != 'отменено'";
+            WITH DateRange AS (
+                SELECT 
+                    COUNT(*) as TotalBookings,
+                    MIN(check_in_date) as MinDate,
+                    MAX(check_out_date) as MaxDate
+                FROM Bookings
+                WHERE status IN ('завершено', 'подтверждено')
+            )
+            SELECT 
+                CASE 
+                    WHEN (MaxDate - MinDate) > 0 THEN TotalBookings::numeric / (MaxDate - MinDate)
+                    ELSE TotalBookings 
+                END
+            FROM DateRange;";
 
                 using (var conn = new NpgsqlConnection(DbConnectionString))
                 {
                     conn.Open();
                     using (var cmd = new NpgsqlCommand(sql, conn))
                     {
-                        cmd.Parameters.AddWithValue("@start", startDate);
-                        cmd.Parameters.AddWithValue("@end", endDate);
                         var result = cmd.ExecuteScalar();
-                        if (result == DBNull.Value) return DataStore.LastLambda;
-                        double val = Convert.ToDouble(result);
-                        return val > 0 ? val : DataStore.LastLambda;
+                        if (result == DBNull.Value) return 0;
+                        return Convert.ToDouble(result);
                     }
                 }
             }
-            catch
+            catch (Exception ex)
             {
-                return DataStore.LastLambda;
+                MessageBox.Show($"Ошибка CalculateRealLambda: {ex.Message}", "Ошибка БД");
+                return 0;
             }
         }
 
@@ -670,7 +679,7 @@ develop
                     cmd.Parameters.AddWithValue("@date", date);
                     var result = cmd.ExecuteScalar();
                     double sum = result == DBNull.Value ? 0 : Convert.ToDouble(result);
-                    return 1.0 + sum; // базовый коэффициент 1 + сумма отклонений
+                    return 1.0 + sum;
                 }
             }
         }
@@ -720,6 +729,16 @@ develop
             if (DataStore.Bookings.Count > 0)
                 DataStore.NextBookingId = DataStore.Bookings.Max(b => b.BookingId) + 1;
         }
+
+Seasonality-and-cancellations
+        public double CalculateCancellationRate()
+        {
+            try
+            {
+                string sql = @"
+            SELECT 
+                COUNT(*) FILTER (WHERE status IN ('отменено', 'не заехал')) * 1.0 / NULLIF(COUNT(*), 0) 
+            FROM Bookings";
 
         public User AuthenticateUser(string login, string password)
         {
@@ -790,12 +809,24 @@ develop
                 string passwordHash = BitConverter.ToString(hashedBytes).Replace("-", "").ToLower();
 
                 string sql = "INSERT INTO Users (login, password_hash, role) VALUES (@login, @hash, @role)";
+develop
 
                 using (var conn = new NpgsqlConnection(DbConnectionString))
                 {
                     conn.Open();
                     using (var cmd = new NpgsqlCommand(sql, conn))
                     {
+Seasonality-and-cancellations
+                        var result = cmd.ExecuteScalar();
+                        if (result == DBNull.Value) return 0;
+                        return Convert.ToDouble(result);
+                    }
+                }
+            }
+            catch
+            {
+                return 0;
+
                         cmd.Parameters.AddWithValue("@login", login);
                         cmd.Parameters.AddWithValue("@hash", passwordHash);
                         cmd.Parameters.AddWithValue("@role", role);
@@ -817,6 +848,7 @@ develop
                     cmd.Parameters.AddWithValue("@id", userId);
                     cmd.ExecuteNonQuery();
                 }
+develop
             }
         }
     }
