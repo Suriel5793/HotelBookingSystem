@@ -12,56 +12,57 @@ namespace Diplom.Services
 
             if (!result.IsStable)
             {
-                recommendations.Add("❌ СИСТЕМА НЕСТАБИЛЬНА (ρ ≥ 1)");
-                recommendations.Add("→ Увеличьте количество номеров (c) минимум до " + Math.Ceiling(lambda / mu + 1));
-                recommendations.Add("→ Повысьте цены в пиковые периоды для снижения спроса");
-                recommendations.Add("→ Рассмотрите возможность добавления новых категорий номеров");
+                recommendations.Add("СИСТЕМА НЕСТАБИЛЬНА (ρ ≥ 1)");
+                recommendations.Add("Увеличьте количество номеров (c) минимум до " + Math.Ceiling(lambda / mu + 1));
+                recommendations.Add("Повысьте цены в пиковые периоды для снижения спроса");
+                recommendations.Add("Рассмотрите возможность добавления новых категорий номеров");
                 return recommendations;
             }
 
             if (result.P_reject > 0.1)
             {
-                recommendations.Add($"⚠️ Высокая вероятность отказа: {result.P_reject * 100:F1}%");
-                recommendations.Add($"→ Рекомендуется увеличить количество номеров до {FindMinCForPReject(lambda, mu, 0.05)}");
-                recommendations.Add("→ Внедрите систему overbooking (перебронирование) с компенсациями");
+                recommendations.Add($"Высокая вероятность отказа: {result.P_reject * 100:F1}%");
+                int recommendedC = (int)Math.Ceiling(lambda / mu) + 1;
+                recommendations.Add($"Рекомендуется увеличить количество номеров до {recommendedC}");
+                recommendations.Add("Внедрите систему overbooking (перебронирование) с компенсациями");
             }
             else if (result.P_reject > 0.05)
             {
-                recommendations.Add($"⚠️ Средняя вероятность отказа: {result.P_reject * 100:F1}%");
-                recommendations.Add("→ Увеличьте количество номеров на 5-10%");
-                recommendations.Add("→ Рассмотрите динамическое ценообразование");
+                recommendations.Add($"Средняя вероятность отказа: {result.P_reject * 100:F1}%");
+                recommendations.Add("Увеличьте количество номеров на 5-10%");
+                recommendations.Add("Рассмотрите динамическое ценообразование");
             }
             else if (result.P_reject < 0.01)
             {
-                recommendations.Add($"✅ Очень низкая вероятность отказа: {result.P_reject * 100:F2}%");
-                recommendations.Add("→ Количество номеров может быть избыточно");
-                recommendations.Add("→ Рассмотрите временное переоборудование части номеров под другие цели");
+                recommendations.Add($"Очень низкая вероятность отказа: {result.P_reject * 100:F2}%");
+                recommendations.Add("Количество номеров может быть избыточно");
+                recommendations.Add("Рассмотрите временное переоборудование части номеров под другие цели");
             }
 
             if (result.Wq * 24 > 4)
             {
-                recommendations.Add($"⚠️ Большое время ожидания: {result.Wq * 24:F1} часов");
-                recommendations.Add("→ Увеличьте количество номеров");
-                recommendations.Add("→ Внедрите систему предварительного онлайн-заселения");
+                recommendations.Add($"Большое время ожидания: {result.Wq * 24:F1} часов");
+                recommendations.Add("Увеличьте количество номеров");
+                recommendations.Add("Внедрите систему предварительного онлайн-заселения");
             }
             else if (result.Wq * 24 > 1)
             {
-                recommendations.Add($"⏱️ Среднее время ожидания: {result.Wq * 24:F1} часов");
-                recommendations.Add("→ Рассмотрите возможность экспресс-заселения");
+                recommendations.Add($"Среднее время ожидания: {result.Wq * 24:F1} часов");
+                recommendations.Add("Рассмотрите возможность экспресс-заселения");
             }
 
             if (result.Rho > 0.85)
             {
-                recommendations.Add($"📈 Высокая загрузка: {result.Rho * 100:F1}%");
-                recommendations.Add("→ Повысьте цены в выходные дни");
-                recommendations.Add("→ Внедрите программы лояльности для постоянных клиентов");
+                recommendations.Add($"Высокая загрузка: {result.Rho * 100:F1}%");
+                recommendations.Add("Повысьте цены в выходные дни");
+                recommendations.Add("Внедрите программы лояльности для постоянных клиентов");
             }
             else if (result.Rho < 0.4)
             {
-                recommendations.Add($"📉 Низкая загрузка: {result.Rho * 100:F1}%");
-                recommendations.Add("→ Снизьте цены или запустите акции");
-                recommendations.Add("→ Увеличьте маркетинговый бюджет");
-                recommendations.Add("→ Добавьте дополнительные услуги");
+                recommendations.Add($"Низкая загрузка: {result.Rho * 100:F1}%");
+                recommendations.Add("Снизьте цены или запустите акции");
+                recommendations.Add("Увеличьте маркетинговый бюджет");
+                recommendations.Add("Добавьте дополнительные услуги");
             }
             else
             {
@@ -70,47 +71,58 @@ namespace Diplom.Services
 
             if (result.P_reject < 0.05 && result.Rho < 0.7)
             {
-                recommendations.Add("💰 Резерв свободных номеров можно использовать для:");
-                recommendations.Add("  • Долгосрочных контрактов с корпоративными клиентами");
-                recommendations.Add("  • Проведения специальных мероприятий");
+                recommendations.Add("Резерв свободных номеров можно использовать для:");
+                recommendations.Add("Долгосрочных контрактов с корпоративными клиентами");
+                recommendations.Add("Проведения специальных мероприятий");
             }
 
             double avgLambda = 45;
             if (lambda > avgLambda * 1.3)
             {
-                recommendations.Add("🌡️ Высокий сезон: временно повысьте цены на 15-20%");
+                recommendations.Add("Высокий сезон: временно повысьте цены на 15-20%");
             }
             else if (lambda < avgLambda * 0.7)
             {
-                recommendations.Add("🍂 Низкий сезон: запустите специальные предложения и скидки");
+                recommendations.Add("Низкий сезон: запустите специальные предложения и скидки");
             }
 
             if (recommendations.Count == 0)
             {
-                recommendations.Add("✓ Система работает оптимально. Продолжайте в том же духе!");
+                recommendations.Add("Система работает оптимально. Продолжайте в том же духе!");
             }
 
             return recommendations;
         }
-        public int FindMinCForPReject(double lambda, double mu, double maxPReject)
+        public int FindOptimalCByProfit(double lambda, double mu, decimal avgPrice, decimal avgCost)
         {
             var calculator = new MmcCalculator();
+            double maxProfit = double.MinValue;
+            int bestC = -1;
 
             for (int c = 1; c <= 500; c++)
             {
                 double rho = lambda / (c * mu);
-                if (rho >= 1) continue;
+                if (rho >= 1) continue; // Система должна быть стабильна
 
                 var input = new QueueModel { Lambda = lambda, Mu = mu, C = c };
                 var result = calculator.Calculate(input);
 
-                if (result.P_reject <= maxPReject)
+                // Жесткое условие: отказов не более 5%
+                if (result.P_reject > 0.05) continue;
+
+                // Считаем прибыль: (Занятые номера * Цена) - (Всего номеров * Затраты)
+                double occupiedRooms = c * result.Rho;
+                double revenue = occupiedRooms * (double)avgPrice;
+                double costs = c * (double)avgCost;
+                double profit = revenue - costs;
+
+                if (profit > maxProfit)
                 {
-                    return c;
+                    maxProfit = profit;
+                    bestC = c;
                 }
             }
-
-            return -1;
+            return bestC;
         }
 
         public decimal CalculateOptimalPrice(decimal basePrice, double rho)
