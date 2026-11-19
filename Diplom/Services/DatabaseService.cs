@@ -116,6 +116,18 @@ CREATE TABLE IF NOT EXISTS External_Factors (
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
 
+CREATE TABLE IF NOT EXISTS Users (
+    user_id SERIAL PRIMARY KEY,
+    login VARCHAR(50) UNIQUE NOT NULL,
+    password_hash VARCHAR(255) NOT NULL,
+    role VARCHAR(20) NOT NULL CHECK (role IN ('admin', 'manager')),
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
+
+INSERT INTO Users (login, password_hash, role) 
+VALUES ('admin', '8c6976e5b5410415bde908bd4dee15dfb167a9c873fc4bb8a81f6f2ab448a918', 'admin')
+ON CONFLICT (login) DO NOTHING;
+
 CREATE INDEX IF NOT EXISTS idx_rooms_category ON Hotel_Rooms(category);
 CREATE INDEX IF NOT EXISTS idx_rooms_status ON Hotel_Rooms(status);
 CREATE INDEX IF NOT EXISTS idx_bookings_room_id ON Bookings(room_id);
@@ -162,11 +174,26 @@ CREATE TRIGGER update_bookings_updated_at
                 CreateDatabase();
                 System.Threading.Thread.Sleep(500);
             }
+Economy
 
             if (!TablesExist())
             {
                 CreateTables();
             }
+
+            try
+            {
+                using (var conn = new NpgsqlConnection(DbConnectionString))
+                {
+                    conn.Open();
+                    string alterSql = "ALTER TABLE Hotel_Rooms ADD COLUMN IF NOT EXISTS maintenance_cost DECIMAL(10,2) DEFAULT 1500.00;";
+                    using (var cmd = new NpgsqlCommand(alterSql, conn)) cmd.ExecuteNonQuery();
+                }
+            }
+            catch { /* Игнорируем, если колонка уже есть */ }
+
+            CreateTables();
+develop
         }
 
         public bool TestConnection()
@@ -188,7 +215,7 @@ CREATE TRIGGER update_bookings_updated_at
         public List<HotelRoom> GetAllRooms()
         {
             var rooms = new List<HotelRoom>();
-            string sql = "SELECT room_id, category, room_number, base_price_per_night, capacity, status, created_at, updated_at FROM Hotel_Rooms";
+            string sql = "SELECT room_id, category, room_number, base_price_per_night, capacity, status, maintenance_cost, created_at, updated_at FROM Hotel_Rooms";
 
             using (var conn = new NpgsqlConnection(DbConnectionString))
             {
@@ -206,8 +233,9 @@ CREATE TRIGGER update_bookings_updated_at
                             BasePricePerNight = reader.GetDecimal(3),
                             Capacity = reader.GetInt32(4),
                             Status = reader.GetString(5),
-                            CreatedAt = reader.GetDateTime(6),
-                            UpdatedAt = reader.GetDateTime(7)
+                            MaintenanceCost = reader.GetDecimal(6),
+                            CreatedAt = reader.GetDateTime(7),
+                            UpdatedAt = reader.GetDateTime(8)
                         });
                     }
                 }
@@ -217,7 +245,7 @@ CREATE TRIGGER update_bookings_updated_at
 
         public HotelRoom GetRoomById(int roomId)
         {
-            string sql = "SELECT room_id, category, room_number, base_price_per_night, capacity, status, created_at, updated_at FROM Hotel_Rooms WHERE room_id = @id";
+            string sql = "SELECT room_id, category, room_number, base_price_per_night, capacity, status, maintenance_cost, created_at, updated_at FROM Hotel_Rooms WHERE room_id = @id";
 
             using (var conn = new NpgsqlConnection(DbConnectionString))
             {
@@ -237,8 +265,9 @@ CREATE TRIGGER update_bookings_updated_at
                                 BasePricePerNight = reader.GetDecimal(3),
                                 Capacity = reader.GetInt32(4),
                                 Status = reader.GetString(5),
-                                CreatedAt = reader.GetDateTime(6),
-                                UpdatedAt = reader.GetDateTime(7)
+                                MaintenanceCost = reader.GetDecimal(6),
+                                CreatedAt = reader.GetDateTime(7),
+                                UpdatedAt = reader.GetDateTime(8)
                             };
                         }
                     }
@@ -249,9 +278,9 @@ CREATE TRIGGER update_bookings_updated_at
 
         public int AddRoomAndGetId(HotelRoom room)
         {
-            string sql = @"INSERT INTO Hotel_Rooms (category, room_number, base_price_per_night, capacity, status, created_at, updated_at) 
-                           VALUES (@category, @room_number, @price, @capacity, @status, @created_at, @updated_at)
-                           RETURNING room_id";
+            string sql = @"INSERT INTO Hotel_Rooms (category, room_number, base_price_per_night, capacity, status, maintenance_cost, created_at, updated_at) 
+               VALUES (@category, @room_number, @price, @capacity, @status, @maintenance_cost, @created_at, @updated_at)
+               RETURNING room_id";
 
             using (var conn = new NpgsqlConnection(DbConnectionString))
             {
@@ -265,6 +294,7 @@ CREATE TRIGGER update_bookings_updated_at
                     cmd.Parameters.AddWithValue("@status", room.Status);
                     cmd.Parameters.AddWithValue("@created_at", DateTime.Now);
                     cmd.Parameters.AddWithValue("@updated_at", DateTime.Now);
+                    cmd.Parameters.AddWithValue("@maintenance_cost", room.MaintenanceCost);
                     return (int)cmd.ExecuteScalar();
                 }
             }
@@ -273,13 +303,9 @@ CREATE TRIGGER update_bookings_updated_at
         public void UpdateRoom(HotelRoom room)
         {
             string sql = @"UPDATE Hotel_Rooms SET 
-                           category = @category,
-                           room_number = @room_number,
-                           base_price_per_night = @price,
-                           capacity = @capacity,
-                           status = @status,
-                           updated_at = @updated_at
-                           WHERE room_id = @room_id";
+               category = @category, room_number = @room_number, base_price_per_night = @price,
+               capacity = @capacity, status = @status, maintenance_cost = @maintenance_cost, updated_at = @updated_at
+               WHERE room_id = @room_id";
 
             using (var conn = new NpgsqlConnection(DbConnectionString))
             {
@@ -293,6 +319,7 @@ CREATE TRIGGER update_bookings_updated_at
                     cmd.Parameters.AddWithValue("@capacity", room.Capacity);
                     cmd.Parameters.AddWithValue("@status", room.Status);
                     cmd.Parameters.AddWithValue("@updated_at", DateTime.Now);
+                    cmd.Parameters.AddWithValue("@maintenance_cost", room.MaintenanceCost);
                     cmd.ExecuteNonQuery();
                 }
             }
@@ -527,6 +554,7 @@ CREATE TRIGGER update_bookings_updated_at
             {
                 // Считаем ВСЕ брони за всё время и делим на реальный период
                 string sql = @"
+Charts-redesign
                     WITH DateRange AS (
                         SELECT 
                             COUNT(*) as TotalBookings,
@@ -541,6 +569,22 @@ CREATE TRIGGER update_bookings_updated_at
                             ELSE TotalBookings 
                         END
                     FROM DateRange;";
+
+            WITH DateRange AS (
+                SELECT 
+                    COUNT(*) as TotalBookings,
+                    MIN(check_in_date) as MinDate,
+                    MAX(check_out_date) as MaxDate
+                FROM Bookings
+                WHERE status IN ('завершено', 'подтверждено')
+            )
+            SELECT 
+                CASE 
+                    WHEN (MaxDate - MinDate) > 0 THEN TotalBookings::numeric / (MaxDate - MinDate)
+                    ELSE TotalBookings 
+                END
+            FROM DateRange;";
+develop
 
                 using (var conn = new NpgsqlConnection(DbConnectionString))
                 {
@@ -702,6 +746,128 @@ CREATE TRIGGER update_bookings_updated_at
                 DataStore.NextRoomId = DataStore.Rooms.Max(r => r.RoomId) + 1;
             if (DataStore.Bookings.Count > 0)
                 DataStore.NextBookingId = DataStore.Bookings.Max(b => b.BookingId) + 1;
+        }
+
+Seasonality-and-cancellations
+        public double CalculateCancellationRate()
+        {
+            try
+            {
+                string sql = @"
+            SELECT 
+                COUNT(*) FILTER (WHERE status IN ('отменено', 'не заехал')) * 1.0 / NULLIF(COUNT(*), 0) 
+            FROM Bookings";
+
+        public User AuthenticateUser(string login, string password)
+        {
+            using (var sha256 = System.Security.Cryptography.SHA256.Create())
+            {
+                var hashedBytes = sha256.ComputeHash(System.Text.Encoding.UTF8.GetBytes(password));
+                string passwordHash = BitConverter.ToString(hashedBytes).Replace("-", "").ToLower();
+
+                string sql = "SELECT user_id, login, role FROM Users WHERE login = @login AND password_hash = @hash";
+
+                using (var conn = new NpgsqlConnection(DbConnectionString))
+                {
+                    conn.Open();
+                    using (var cmd = new NpgsqlCommand(sql, conn))
+                    {
+                        cmd.Parameters.AddWithValue("@login", login);
+                        cmd.Parameters.AddWithValue("@hash", passwordHash);
+
+                        using (var reader = cmd.ExecuteReader())
+                        {
+                            if (reader.Read())
+                            {
+                                return new User
+                                {
+                                    UserId = reader.GetInt32(0),
+                                    Login = reader.GetString(1),
+                                    Role = reader.GetString(2)
+                                };
+                            }
+                        }
+                    }
+                }
+            }
+            return null;
+        }
+
+        public List<User> GetAllUsers()
+        {
+            var users = new List<User>();
+            string sql = "SELECT user_id, login, role, created_at FROM Users ORDER BY user_id";
+
+            using (var conn = new NpgsqlConnection(DbConnectionString))
+            {
+                conn.Open();
+                using (var cmd = new NpgsqlCommand(sql, conn))
+                using (var reader = cmd.ExecuteReader())
+                {
+                    while (reader.Read())
+                    {
+                        users.Add(new User
+                        {
+                            UserId = reader.GetInt32(0),
+                            Login = reader.GetString(1),
+                            Role = reader.GetString(2),
+                            CreatedAt = reader.GetDateTime(3)
+                        });
+                    }
+                }
+            }
+            return users;
+        }
+
+        public void AddUser(string login, string password, string role)
+        {
+            using (var sha256 = System.Security.Cryptography.SHA256.Create())
+            {
+                var hashedBytes = sha256.ComputeHash(System.Text.Encoding.UTF8.GetBytes(password));
+                string passwordHash = BitConverter.ToString(hashedBytes).Replace("-", "").ToLower();
+
+                string sql = "INSERT INTO Users (login, password_hash, role) VALUES (@login, @hash, @role)";
+develop
+
+                using (var conn = new NpgsqlConnection(DbConnectionString))
+                {
+                    conn.Open();
+                    using (var cmd = new NpgsqlCommand(sql, conn))
+                    {
+Seasonality-and-cancellations
+                        var result = cmd.ExecuteScalar();
+                        if (result == DBNull.Value) return 0;
+                        return Convert.ToDouble(result);
+                    }
+                }
+            }
+            catch
+            {
+                return 0;
+
+                        cmd.Parameters.AddWithValue("@login", login);
+                        cmd.Parameters.AddWithValue("@hash", passwordHash);
+                        cmd.Parameters.AddWithValue("@role", role);
+                        cmd.ExecuteNonQuery();
+                    }
+                }
+            }
+        }
+
+        public void DeleteUser(int userId)
+        {
+            string sql = "DELETE FROM Users WHERE user_id = @id";
+
+            using (var conn = new NpgsqlConnection(DbConnectionString))
+            {
+                conn.Open();
+                using (var cmd = new NpgsqlCommand(sql, conn))
+                {
+                    cmd.Parameters.AddWithValue("@id", userId);
+                    cmd.ExecuteNonQuery();
+                }
+develop
+            }
         }
     }
 }

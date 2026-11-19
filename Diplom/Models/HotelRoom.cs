@@ -12,5 +12,6 @@ namespace Diplom.Models
         public string Status { get; set; } = "available";
         public DateTime CreatedAt { get; set; }
         public DateTime UpdatedAt { get; set; }
+        public decimal MaintenanceCost { get; set; } = 1500;
     }
 }

@@ -1,11 +1,18 @@
-﻿using System;
-using System.Windows.Forms;
+﻿using Diplom.Models;
+using Diplom.Services;
 using OxyPlot;
-using OxyPlot.Series;
+using OxyPlot.Annotations;
 using OxyPlot.Axes;
+Charts-redesign
 using Diplom.Models;
 using Diplom.Services;
 using OxyPlot.Annotations;
+
+using OxyPlot.Series;
+using System;
+using System.Linq;
+using System.Windows.Forms;
+develop
 
 namespace Diplom.Forms
 {
@@ -16,6 +23,8 @@ namespace Diplom.Forms
         private double _realLambda;
         private double _realMu;
         private int _realC;
+        private decimal _avgPrice;
+        private decimal _avgCost;
 
         public ChartsForm()
         {
@@ -30,8 +39,14 @@ namespace Diplom.Forms
         private void LoadRealData()
         {
             _realLambda = _db.CalculateRealLambda();
+Charts-redesign
+
+            if (_realLambda <= 0) _realLambda = 5.87;
+
+develop
             _realMu = _db.CalculateRealMu();
             _realC = _db.GetRealRoomCount();
+Charts-redesign
 
             if (_realLambda <= 0 || _realMu <= 0 || _realC <= 0)
             {
@@ -43,6 +58,13 @@ namespace Diplom.Forms
                 _realC = 1;
             }
 
+            if (_realC <= 0) _realC = 10;
+
+            var rooms = _db.GetAllRooms();
+            _avgPrice = rooms.Count > 0 ? rooms.Average(r => r.BasePricePerNight) : 4000m;
+            _avgCost = rooms.Count > 0 ? rooms.Average(r => r.MaintenanceCost) : 1500m;
+develop
+
             this.Text = $"Аналитика — Графики (λ={_realLambda:F2}, μ={_realMu:F2}, c={_realC})";
         }
 
@@ -51,6 +73,7 @@ namespace Diplom.Forms
             PlotLvsC();
             PlotPRejectVsC();
             PlotWvsLambda();
+            PlotProfitVsC();
         }
 
         private void PlotLvsC()
@@ -292,6 +315,107 @@ namespace Diplom.Forms
             model.Axes.Add(yAxis);
 
             plotWvsLambda.Model = model;
+        }
+
+        private void PlotProfitVsC()
+        {
+            var model = new PlotModel
+            {
+                Title = "Зависимость прибыли от количества номеров (за 30 дней)",
+                TitleFontSize = 14,
+                TitleFontWeight = FontWeights.Bold,
+                Background = OxyColor.FromRgb(253, 245, 230),
+                PlotAreaBorderColor = OxyColor.FromRgb(210, 180, 140)
+            };
+
+            var series = new LineSeries
+            {
+                Title = "Прибыль (руб.)",
+                StrokeThickness = 4,
+                Color = OxyColor.FromRgb(34, 139, 34),
+                InterpolationAlgorithm = InterpolationAlgorithms.CanonicalSpline
+            };
+
+            var calculator = new MmcCalculator();
+            double bestProfit = double.MinValue;
+            int bestC = -1;
+
+            for (int c = 1; c <= 100; c++)
+            {
+                double rho = _realLambda / (c * _realMu);
+                if (rho >= 1) continue;
+
+                var input = new QueueModel { Lambda = _realLambda, Mu = _realMu, C = c };
+                var result = calculator.Calculate(input);
+
+                double occupiedRooms = c * result.Rho;
+                double revenue = occupiedRooms * (double)_avgPrice * 30;
+                double costs = c * (double)_avgCost * 30;
+                double profit = revenue - costs;
+
+                series.Points.Add(new DataPoint(c, profit));
+
+                if (profit > bestProfit)
+                {
+                    bestProfit = profit;
+                    bestC = c;
+                }
+            }
+
+            model.Series.Add(series);
+
+            var zeroLine = new LineAnnotation
+            {
+                Type = LineAnnotationType.Horizontal,
+                Y = 0,
+                Color = OxyColors.Black,
+                LineStyle = LineStyle.Dash,
+                StrokeThickness = 1.5,
+                Text = "Окупаемость",
+                TextHorizontalAlignment = OxyPlot.HorizontalAlignment.Left
+            };
+            model.Annotations.Add(zeroLine);
+
+            if (bestC > 0)
+            {
+                var peakPoint = new ScatterSeries
+                {
+                    Title = "Максимум прибыли",
+                    MarkerType = MarkerType.Diamond,
+                    MarkerSize = 10,
+                    MarkerFill = OxyColors.Gold,
+                    MarkerStroke = OxyColors.Black,
+                    MarkerStrokeThickness = 1
+                };
+                peakPoint.Points.Add(new ScatterPoint(bestC, bestProfit));
+                model.Series.Add(peakPoint);
+            }
+
+            var currentLine = new LineAnnotation
+            {
+                Type = LineAnnotationType.Vertical,
+                X = _realC,
+                Color = OxyColors.IndianRed,
+                LineStyle = LineStyle.Dash,
+                StrokeThickness = 2,
+                Text = $"Текущее c = {_realC}",
+                TextHorizontalAlignment = OxyPlot.HorizontalAlignment.Right
+            };
+            model.Annotations.Add(currentLine);
+
+            var xAxis = new LinearAxis { Position = AxisPosition.Bottom, Title = "Количество номеров (c)", Minimum = 0 };
+            xAxis.MajorGridlineStyle = LineStyle.Solid;
+            xAxis.MajorGridlineColor = OxyColor.FromRgb(220, 220, 220);
+
+            var yAxis = new LinearAxis { Position = AxisPosition.Left, Title = "Прибыль за 30 дней (руб.)" };
+            yAxis.StringFormat = "N0"; // Формат "1 000 000"
+            yAxis.MajorGridlineStyle = LineStyle.Solid;
+            yAxis.MajorGridlineColor = OxyColor.FromRgb(220, 220, 220);
+
+            model.Axes.Add(xAxis);
+            model.Axes.Add(yAxis);
+
+            plotProfitVsC.Model = model;
         }
 
         private void BtnClose_Click(object sender, EventArgs e)

@@ -3,6 +3,7 @@ using System.Linq;
 using System.Windows.Forms;
 using Diplom.Models;
 using Diplom.Services;
+using System.Collections.Generic;
 
 namespace Diplom.Forms
 {
@@ -16,7 +17,24 @@ namespace Diplom.Forms
         private int _realC;
         private double _factorsImpact;
         private double _adjustedLambda;
+        private double _cancelRate;
 
+        private readonly Dictionary<int, double> _seasonality = new Dictionary<int, double>
+        {
+            { 1, 0.8 },  // Январь (низкий сезон)
+            { 2, 0.8 },  // Февраль
+            { 3, 0.9 },  // Март
+            { 4, 1.0 },  // Апрель
+            { 5, 1.1 },  // Май
+            { 6, 1.3 },  // Июнь (высокий сезон)
+            { 7, 1.5 },  // Июль (пик)
+            { 8, 1.5 },  // Август (пик)
+            { 9, 1.2 },  // Сентябрь
+            { 10, 1.0 }, // Октябрь
+            { 11, 0.9 }, // Ноябрь
+            { 12, 1.1 }  // Декабрь (новогодние праздники)
+        };
+        private double _seasonalityImpact = 1.0;
         public ForecastForm()
         {
             InitializeComponent();
@@ -33,64 +51,71 @@ namespace Diplom.Forms
             _realLambda = _db.CalculateRealLambda();
             if (_realLambda <= 0) _realLambda = 5.87;
 
+Charts-redesign
             _factorsImpact = _db.GetFactorsImpact(DateTime.Now.AddDays(7));
             _adjustedLambda = _realLambda * _factorsImpact;
 
+
+develop
             _realMu = _db.CalculateRealMu();
             if (_realMu <= 0) _realMu = 0.5;
 
             _realC = _db.GetRealRoomCount();
             if (_realC <= 0) _realC = 10;
 
-            ShowFactorsInfo();
-        }
+            _cancelRate = _db.CalculateCancellationRate();
+            _realLambda = _realLambda * (1 - _cancelRate);
 
-        private void ShowFactorsInfo()
-        {
-            var activeFactors = _db.GetActiveFactors(DateTime.Now.AddDays(7));
+            int currentMonth = DateTime.Now.Month;
+            _seasonalityImpact = _seasonality.ContainsKey(currentMonth) ? _seasonality[currentMonth] : 1.0;
+            _realLambda = _realLambda * _seasonalityImpact;
+
+Seasonality-and-cancellations
+            _factorsImpact = _db.GetFactorsImpact(DateTime.Now.AddDays(7));
+            _adjustedLambda = _realLambda * _factorsImpact;
 
             if (activeFactors.Count > 0 && _factorsImpact != 1.0)
             {
-                string factorsText = "📊 Влияние внешних факторов:\n";
+                string factorsText = "Влияние внешних факторов:\n";
                 foreach (var f in activeFactors)
                 {
                     double impactPercent = (double)(f.ImpactCoefficient - 1) * 100;
                     string arrow = impactPercent > 0 ? "↑" : "↓";
                     factorsText += $"  {arrow} {f.Type}: {f.Value} — влияние {impactPercent:+0;-0;0}%\n";
                 }
-                factorsText += $"\n📈 Итоговый коэффициент влияния: {_factorsImpact:F2}";
-                factorsText += $"\n📊 Скорректированный спрос: λ = {_realLambda:F2} → {_adjustedLambda:F2}";
+                factorsText += $"\nИтоговый коэффициент влияния: {_factorsImpact:F2}";
+                factorsText += $"\nСкорректированный спрос: λ = {_realLambda:F2} → {_adjustedLambda:F2}";
 
                 MessageBox.Show(factorsText, "Внешние факторы учтены в прогнозе",
                     MessageBoxButtons.OK, MessageBoxIcon.Information);
             }
+develop
         }
 
         private void LoadForecast()
         {
-            lblCurrentParams.Text = $"λ = {_adjustedLambda:F2} (с учётом факторов: {_factorsImpact:F2}×), μ = {_realMu:F2}, c = {_realC}";
-
+            lblCurrentParams.Text = $"λ = {_adjustedLambda:F2} (факторы: {_factorsImpact:F2}×, отмены: {_cancelRate * 100:F1}%, сезон: {_seasonalityImpact:F2}×), μ = {_realMu:F2}, c = {_realC}";
             var input = new QueueModel { Lambda = _adjustedLambda, Mu = _realMu, C = _realC };
             var result = _calculator.Calculate(input);
 
             if (!result.IsStable)
             {
-                lblForecast.Text = "⚠️ СИСТЕМА НЕСТАБИЛЬНА!";
+                lblForecast.Text = "СИСТЕМА НЕСТАБИЛЬНА!";
                 lblForecast.ForeColor = System.Drawing.Color.FromArgb(220, 20, 60);
 
                 var recommendations = _recommendationService.GenerateRecommendations(result, _adjustedLambda, _realMu, _realC);
 
                 if (_factorsImpact > 1.2)
                 {
-                    recommendations.Add("\n📢 Рекомендация по внешним факторам:");
-                    recommendations.Add("  • В ближайшее время ожидается повышенный спрос из-за событий/праздников");
-                    recommendations.Add("  • Рекомендуется временно повысить цены на 15-20%");
+                    recommendations.Add("\nРекомендация по внешним факторам:");
+                    recommendations.Add("В ближайшее время ожидается повышенный спрос из-за событий/праздников");
+                    recommendations.Add("Рекомендуется временно повысить цены на 15-20%");
                 }
                 else if (_factorsImpact < 0.8)
                 {
-                    recommendations.Add("\n📢 Рекомендация по внешним факторам:");
-                    recommendations.Add("  • Ожидается снижение спроса (погода/сезон)");
-                    recommendations.Add("  • Рекомендуется запустить акции и скидки");
+                    recommendations.Add("\nРекомендация по внешним факторам:");
+                    recommendations.Add("Ожидается снижение спроса (погода/сезон)");
+                    recommendations.Add("Рекомендуется запустить акции и скидки");
                 }
 
                 lblRecommendations.Text = string.Join("\n", recommendations);
@@ -98,8 +123,12 @@ namespace Diplom.Forms
                 return;
             }
 
-            double occupancyRate = (1 - result.P_reject) * 100;
-            lblForecast.Text = $"Прогноз загрузки: {occupancyRate:F1}% (с учётом внешних факторов)";
+            double occupancyRate = result.Rho * 100;
+Seasonality-and-cancellations
+            lblForecast.Text = $"Прогноз загрузки (ρ): {occupancyRate:F1}% (с учётом факторов и отмен)";
+
+            lblForecast.Text = $"Прогноз загрузки (ρ): {occupancyRate:F1}% (с учётом внешних факторов)";
+develop
             lblForecast.ForeColor = System.Drawing.Color.FromArgb(34, 139, 34);
 
             decimal avgPrice = GetAveragePrice();
@@ -110,15 +139,15 @@ namespace Diplom.Forms
 
             if (_factorsImpact > 1.2)
             {
-                recommendationsList.Add("\n📢 Учитывая внешние факторы (повышенный спрос):");
-                recommendationsList.Add("  • Рекомендуется временно повысить цены на 15-20%");
-                recommendationsList.Add("  • Включите динамическое ценообразование");
+                recommendationsList.Add("\nУчитывая внешние факторы (повышенный спрос):");
+                recommendationsList.Add("Рекомендуется временно повысить цены на 15-20%");
+                recommendationsList.Add("Включите динамическое ценообразование");
             }
             else if (_factorsImpact < 0.8)
             {
-                recommendationsList.Add("\n📢 Учитывая внешние факторы (снижение спроса):");
-                recommendationsList.Add("  • Рекомендуется запустить акции и скидки");
-                recommendationsList.Add("  • Рассмотрите программы лояльности");
+                recommendationsList.Add("\nУчитывая внешние факторы (снижение спроса):");
+                recommendationsList.Add("Рекомендуется запустить акции и скидки");
+                recommendationsList.Add("Рассмотрите программы лояльности");
             }
 
             lblRecommendations.Text = string.Join("\n\n", recommendationsList);
@@ -138,20 +167,27 @@ namespace Diplom.Forms
 
         private void BtnFindOptimalC_Click(object sender, EventArgs e)
         {
-            int optimalC = _recommendationService.FindMinCForPReject(_adjustedLambda, _realMu, 0.05);
+            // Берем среднюю цену и средние затраты из номеров
+            var rooms = _db.GetAllRooms();
+            decimal avgPrice = rooms.Count > 0 ? rooms.Average(r => r.BasePricePerNight) : 4000m;
+            decimal avgCost = rooms.Count > 0 ? rooms.Average(r => r.MaintenanceCost) : 1500m;
+
+            // Вызываем новый метод поиска по прибыли
+            int optimalC = _recommendationService.FindOptimalCByProfit(_adjustedLambda, _realMu, avgPrice, avgCost);
 
             if (optimalC > 0)
             {
                 string message = $"Оптимальное количество номеров при Pотк ≤ 5%: {optimalC}\n\n" +
                                  $"Текущее количество: {_realC}\n" +
-                                 $"С учётом внешних факторов λ = {_adjustedLambda:F2}\n\n";
+                                 $"Средняя цена: {avgPrice:C0}\n" +
+                                 $"Средние затраты: {avgCost:C0}\n\n";
 
                 if (optimalC > _realC)
-                    message += $"📈 Рекомендуется добавить {optimalC - _realC} номеров";
+                    message += $"Рекомендуется добавить {optimalC - _realC} номеров";
                 else if (optimalC < _realC)
-                    message += $"📉 Количество номеров можно уменьшить на {_realC - optimalC}";
+                    message += $"Количество номеров можно уменьшить на {_realC - optimalC}";
                 else
-                    message += $"✓ Текущее количество оптимально";
+                    message += $"Текущее количество оптимально";
 
                 MessageBox.Show(message, "Рекомендация по количеству номеров",
                     MessageBoxButtons.OK, MessageBoxIcon.Information);
