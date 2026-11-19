@@ -173,7 +173,26 @@ CREATE TRIGGER update_bookings_updated_at
                 CreateDatabase();
                 System.Threading.Thread.Sleep(500);
             }
+Economy
+
+            if (!TablesExist())
+            {
+                CreateTables();
+            }
+
+            try
+            {
+                using (var conn = new NpgsqlConnection(DbConnectionString))
+                {
+                    conn.Open();
+                    string alterSql = "ALTER TABLE Hotel_Rooms ADD COLUMN IF NOT EXISTS maintenance_cost DECIMAL(10,2) DEFAULT 1500.00;";
+                    using (var cmd = new NpgsqlCommand(alterSql, conn)) cmd.ExecuteNonQuery();
+                }
+            }
+            catch { /* Игнорируем, если колонка уже есть */ }
+
             CreateTables();
+develop
         }
 
         public bool TestConnection()
@@ -195,7 +214,7 @@ CREATE TRIGGER update_bookings_updated_at
         public List<HotelRoom> GetAllRooms()
         {
             var rooms = new List<HotelRoom>();
-            string sql = "SELECT room_id, category, room_number, base_price_per_night, capacity, status, created_at, updated_at FROM Hotel_Rooms";
+            string sql = "SELECT room_id, category, room_number, base_price_per_night, capacity, status, maintenance_cost, created_at, updated_at FROM Hotel_Rooms";
 
             using (var conn = new NpgsqlConnection(DbConnectionString))
             {
@@ -213,8 +232,9 @@ CREATE TRIGGER update_bookings_updated_at
                             BasePricePerNight = reader.GetDecimal(3),
                             Capacity = reader.GetInt32(4),
                             Status = reader.GetString(5),
-                            CreatedAt = reader.GetDateTime(6),
-                            UpdatedAt = reader.GetDateTime(7)
+                            MaintenanceCost = reader.GetDecimal(6),
+                            CreatedAt = reader.GetDateTime(7),
+                            UpdatedAt = reader.GetDateTime(8)
                         });
                     }
                 }
@@ -224,7 +244,7 @@ CREATE TRIGGER update_bookings_updated_at
 
         public HotelRoom GetRoomById(int roomId)
         {
-            string sql = "SELECT room_id, category, room_number, base_price_per_night, capacity, status, created_at, updated_at FROM Hotel_Rooms WHERE room_id = @id";
+            string sql = "SELECT room_id, category, room_number, base_price_per_night, capacity, status, maintenance_cost, created_at, updated_at FROM Hotel_Rooms WHERE room_id = @id";
 
             using (var conn = new NpgsqlConnection(DbConnectionString))
             {
@@ -244,8 +264,9 @@ CREATE TRIGGER update_bookings_updated_at
                                 BasePricePerNight = reader.GetDecimal(3),
                                 Capacity = reader.GetInt32(4),
                                 Status = reader.GetString(5),
-                                CreatedAt = reader.GetDateTime(6),
-                                UpdatedAt = reader.GetDateTime(7)
+                                MaintenanceCost = reader.GetDecimal(6),
+                                CreatedAt = reader.GetDateTime(7),
+                                UpdatedAt = reader.GetDateTime(8)
                             };
                         }
                     }
@@ -256,9 +277,9 @@ CREATE TRIGGER update_bookings_updated_at
 
         public int AddRoomAndGetId(HotelRoom room)
         {
-            string sql = @"INSERT INTO Hotel_Rooms (category, room_number, base_price_per_night, capacity, status, created_at, updated_at) 
-                           VALUES (@category, @room_number, @price, @capacity, @status, @created_at, @updated_at)
-                           RETURNING room_id";
+            string sql = @"INSERT INTO Hotel_Rooms (category, room_number, base_price_per_night, capacity, status, maintenance_cost, created_at, updated_at) 
+               VALUES (@category, @room_number, @price, @capacity, @status, @maintenance_cost, @created_at, @updated_at)
+               RETURNING room_id";
 
             using (var conn = new NpgsqlConnection(DbConnectionString))
             {
@@ -272,6 +293,7 @@ CREATE TRIGGER update_bookings_updated_at
                     cmd.Parameters.AddWithValue("@status", room.Status);
                     cmd.Parameters.AddWithValue("@created_at", DateTime.Now);
                     cmd.Parameters.AddWithValue("@updated_at", DateTime.Now);
+                    cmd.Parameters.AddWithValue("@maintenance_cost", room.MaintenanceCost);
                     return (int)cmd.ExecuteScalar();
                 }
             }
@@ -280,13 +302,9 @@ CREATE TRIGGER update_bookings_updated_at
         public void UpdateRoom(HotelRoom room)
         {
             string sql = @"UPDATE Hotel_Rooms SET 
-                           category = @category,
-                           room_number = @room_number,
-                           base_price_per_night = @price,
-                           capacity = @capacity,
-                           status = @status,
-                           updated_at = @updated_at
-                           WHERE room_id = @room_id";
+               category = @category, room_number = @room_number, base_price_per_night = @price,
+               capacity = @capacity, status = @status, maintenance_cost = @maintenance_cost, updated_at = @updated_at
+               WHERE room_id = @room_id";
 
             using (var conn = new NpgsqlConnection(DbConnectionString))
             {
@@ -300,6 +318,7 @@ CREATE TRIGGER update_bookings_updated_at
                     cmd.Parameters.AddWithValue("@capacity", room.Capacity);
                     cmd.Parameters.AddWithValue("@status", room.Status);
                     cmd.Parameters.AddWithValue("@updated_at", DateTime.Now);
+                    cmd.Parameters.AddWithValue("@maintenance_cost", room.MaintenanceCost);
                     cmd.ExecuteNonQuery();
                 }
             }

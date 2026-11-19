@@ -51,15 +51,15 @@ namespace Diplom.Forms
 
             if (activeFactors.Count > 0 && _factorsImpact != 1.0)
             {
-                string factorsText = "📊 Влияние внешних факторов:\n";
+                string factorsText = "Влияние внешних факторов:\n";
                 foreach (var f in activeFactors)
                 {
                     double impactPercent = (double)(f.ImpactCoefficient - 1) * 100;
                     string arrow = impactPercent > 0 ? "↑" : "↓";
                     factorsText += $"  {arrow} {f.Type}: {f.Value} — влияние {impactPercent:+0;-0;0}%\n";
                 }
-                factorsText += $"\n📈 Итоговый коэффициент влияния: {_factorsImpact:F2}";
-                factorsText += $"\n📊 Скорректированный спрос: λ = {_realLambda:F2} → {_adjustedLambda:F2}";
+                factorsText += $"\nИтоговый коэффициент влияния: {_factorsImpact:F2}";
+                factorsText += $"\nСкорректированный спрос: λ = {_realLambda:F2} → {_adjustedLambda:F2}";
 
                 MessageBox.Show(factorsText, "Внешние факторы учтены в прогнозе",
                     MessageBoxButtons.OK, MessageBoxIcon.Information);
@@ -75,22 +75,22 @@ namespace Diplom.Forms
 
             if (!result.IsStable)
             {
-                lblForecast.Text = "⚠️ СИСТЕМА НЕСТАБИЛЬНА!";
+                lblForecast.Text = "СИСТЕМА НЕСТАБИЛЬНА!";
                 lblForecast.ForeColor = System.Drawing.Color.FromArgb(220, 20, 60);
 
                 var recommendations = _recommendationService.GenerateRecommendations(result, _adjustedLambda, _realMu, _realC);
 
                 if (_factorsImpact > 1.2)
                 {
-                    recommendations.Add("\n📢 Рекомендация по внешним факторам:");
-                    recommendations.Add("  • В ближайшее время ожидается повышенный спрос из-за событий/праздников");
-                    recommendations.Add("  • Рекомендуется временно повысить цены на 15-20%");
+                    recommendations.Add("\nРекомендация по внешним факторам:");
+                    recommendations.Add("В ближайшее время ожидается повышенный спрос из-за событий/праздников");
+                    recommendations.Add("Рекомендуется временно повысить цены на 15-20%");
                 }
                 else if (_factorsImpact < 0.8)
                 {
-                    recommendations.Add("\n📢 Рекомендация по внешним факторам:");
-                    recommendations.Add("  • Ожидается снижение спроса (погода/сезон)");
-                    recommendations.Add("  • Рекомендуется запустить акции и скидки");
+                    recommendations.Add("\nРекомендация по внешним факторам:");
+                    recommendations.Add("Ожидается снижение спроса (погода/сезон)");
+                    recommendations.Add("Рекомендуется запустить акции и скидки");
                 }
 
                 lblRecommendations.Text = string.Join("\n", recommendations);
@@ -98,8 +98,8 @@ namespace Diplom.Forms
                 return;
             }
 
-            double occupancyRate = (1 - result.P_reject) * 100;
-            lblForecast.Text = $"Прогноз загрузки: {occupancyRate:F1}% (с учётом внешних факторов)";
+            double occupancyRate = result.Rho * 100;
+            lblForecast.Text = $"Прогноз загрузки (ρ): {occupancyRate:F1}% (с учётом внешних факторов)";
             lblForecast.ForeColor = System.Drawing.Color.FromArgb(34, 139, 34);
 
             decimal avgPrice = GetAveragePrice();
@@ -110,15 +110,15 @@ namespace Diplom.Forms
 
             if (_factorsImpact > 1.2)
             {
-                recommendationsList.Add("\n📢 Учитывая внешние факторы (повышенный спрос):");
-                recommendationsList.Add("  • Рекомендуется временно повысить цены на 15-20%");
-                recommendationsList.Add("  • Включите динамическое ценообразование");
+                recommendationsList.Add("\nУчитывая внешние факторы (повышенный спрос):");
+                recommendationsList.Add("Рекомендуется временно повысить цены на 15-20%");
+                recommendationsList.Add("Включите динамическое ценообразование");
             }
             else if (_factorsImpact < 0.8)
             {
-                recommendationsList.Add("\n📢 Учитывая внешние факторы (снижение спроса):");
-                recommendationsList.Add("  • Рекомендуется запустить акции и скидки");
-                recommendationsList.Add("  • Рассмотрите программы лояльности");
+                recommendationsList.Add("\nУчитывая внешние факторы (снижение спроса):");
+                recommendationsList.Add("Рекомендуется запустить акции и скидки");
+                recommendationsList.Add("Рассмотрите программы лояльности");
             }
 
             lblRecommendations.Text = string.Join("\n\n", recommendationsList);
@@ -138,20 +138,27 @@ namespace Diplom.Forms
 
         private void BtnFindOptimalC_Click(object sender, EventArgs e)
         {
-            int optimalC = _recommendationService.FindMinCForPReject(_adjustedLambda, _realMu, 0.05);
+            // Берем среднюю цену и средние затраты из номеров
+            var rooms = _db.GetAllRooms();
+            decimal avgPrice = rooms.Count > 0 ? rooms.Average(r => r.BasePricePerNight) : 4000m;
+            decimal avgCost = rooms.Count > 0 ? rooms.Average(r => r.MaintenanceCost) : 1500m;
+
+            // Вызываем новый метод поиска по прибыли
+            int optimalC = _recommendationService.FindOptimalCByProfit(_adjustedLambda, _realMu, avgPrice, avgCost);
 
             if (optimalC > 0)
             {
                 string message = $"Оптимальное количество номеров при Pотк ≤ 5%: {optimalC}\n\n" +
                                  $"Текущее количество: {_realC}\n" +
-                                 $"С учётом внешних факторов λ = {_adjustedLambda:F2}\n\n";
+                                 $"Средняя цена: {avgPrice:C0}\n" +
+                                 $"Средние затраты: {avgCost:C0}\n\n";
 
                 if (optimalC > _realC)
-                    message += $"📈 Рекомендуется добавить {optimalC - _realC} номеров";
+                    message += $"Рекомендуется добавить {optimalC - _realC} номеров";
                 else if (optimalC < _realC)
-                    message += $"📉 Количество номеров можно уменьшить на {_realC - optimalC}";
+                    message += $"Количество номеров можно уменьшить на {_realC - optimalC}";
                 else
-                    message += $"✓ Текущее количество оптимально";
+                    message += $"Текущее количество оптимально";
 
                 MessageBox.Show(message, "Рекомендация по количеству номеров",
                     MessageBoxButtons.OK, MessageBoxIcon.Information);

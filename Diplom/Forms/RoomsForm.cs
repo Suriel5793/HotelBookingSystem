@@ -31,6 +31,7 @@ namespace Diplom.Forms
                 r.Category,
                 r.BasePricePerNight,
                 r.Capacity,
+                r.MaintenanceCost,
                 r.Status
             }).ToList();
 
@@ -40,6 +41,7 @@ namespace Diplom.Forms
                 dgvRooms.Columns["RoomNumber"].HeaderText = "Номер";
                 dgvRooms.Columns["Category"].HeaderText = "Категория";
                 dgvRooms.Columns["BasePricePerNight"].HeaderText = "Цена за ночь, руб.";
+                dgvRooms.Columns["MaintenanceCost"].HeaderText = "Затраты в сутки, руб.";
                 dgvRooms.Columns["Capacity"].HeaderText = "Вместимость";
                 dgvRooms.Columns["Status"].HeaderText = "Статус";
             }
@@ -76,6 +78,7 @@ namespace Diplom.Forms
             txtCategory.Text = "";
             txtPrice.Text = "";
             txtCapacity.Text = "";
+            txtMaintenanceCost.Text = "";
             cmbStatus.SelectedIndex = -1;
 
             _isEditing = false;
@@ -101,8 +104,10 @@ namespace Diplom.Forms
             txtRoomNumber.Text = selectedRoom.RoomNumber;
             txtCategory.Text = selectedRoom.Category;
             txtPrice.Text = selectedRoom.BasePricePerNight.ToString();
+            txtMaintenanceCost.Text = selectedRoom.MaintenanceCost.ToString();
             txtCapacity.Text = selectedRoom.Capacity.ToString();
             cmbStatus.SelectedItem = selectedRoom.Status;
+
 
             _isEditing = true;
             _currentEditId = selectedRoom.RoomId;
@@ -132,6 +137,12 @@ namespace Diplom.Forms
                 return;
             }
 
+            if (!decimal.TryParse(txtMaintenanceCost.Text, out decimal maintCost) || maintCost < 0)
+            {
+                MessageBox.Show("Введите корректные затраты (число >= 0)", "Ошибка", MessageBoxButtons.OK, MessageBoxIcon.Warning);
+                return;
+            }
+
             if (!int.TryParse(txtCapacity.Text, out int capacity) || capacity <= 0 || capacity > 10)
             {
                 MessageBox.Show("Введите корректную вместимость (1-10)", "Ошибка", MessageBoxButtons.OK, MessageBoxIcon.Warning);
@@ -149,6 +160,7 @@ namespace Diplom.Forms
                     room.Category = txtCategory.Text;
                     room.BasePricePerNight = price;
                     room.Capacity = capacity;
+                    room.MaintenanceCost = maintCost;
                     room.Status = status;
                     room.UpdatedAt = DateTime.Now;
 
@@ -164,6 +176,7 @@ namespace Diplom.Forms
                     Category = txtCategory.Text,
                     BasePricePerNight = price,
                     Capacity = capacity,
+                    MaintenanceCost = maintCost,
                     Status = status,
                     CreatedAt = DateTime.Now,
                     UpdatedAt = DateTime.Now
@@ -194,6 +207,7 @@ namespace Diplom.Forms
             txtCategory.Clear();
             txtPrice.Clear();
             txtCapacity.Clear();
+            txtMaintenanceCost.Clear();
             cmbStatus.SelectedIndex = -1;
 
             _isEditing = false;
