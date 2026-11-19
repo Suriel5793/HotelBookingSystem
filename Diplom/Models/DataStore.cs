@@ -17,6 +17,7 @@ namespace Diplom.Models
         public static double LastLambda { get; set; } = 45;
         public static double LastMu { get; set; } = 0.5;
         public static int LastC { get; set; } = 100;
+        public static User CurrentUser { get; set; }
 
         public static void InitTestData()
         {
