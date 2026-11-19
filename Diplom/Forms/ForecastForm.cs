@@ -51,6 +51,12 @@ namespace Diplom.Forms
             _realLambda = _db.CalculateRealLambda();
             if (_realLambda <= 0) _realLambda = 5.87;
 
+Charts-redesign
+            _factorsImpact = _db.GetFactorsImpact(DateTime.Now.AddDays(7));
+            _adjustedLambda = _realLambda * _factorsImpact;
+
+
+develop
             _realMu = _db.CalculateRealMu();
             if (_realMu <= 0) _realMu = 0.5;
 
